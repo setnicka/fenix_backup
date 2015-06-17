@@ -1,11 +1,11 @@
 #ifndef FILETREE_HPP
 #define FILETREE_HPP
 
-#include <unordered_map>
-#include <memory>
-#include <vector>
-
+#include "Config.hpp"
 #include "FileInfo.hpp"
+
+#include <unordered_map>
+#include <vector>
 
 namespace FenixBackup {
 
@@ -28,18 +28,21 @@ class FileTree {
 	std::vector<FileInfo> CloseTree(); // End construction of the file tree and return the files which it wants to download them (TODO: ordered by priority)
 
 	// Saving functions
-	std::string GetTreeName();
+	const std::string& GetTreeName();
 	void SaveTree();
 
 	// In the packing process
 	void ProcessFileContent(std::shared_ptr<FileInfo> file_node, std::ifstream file);
 
+    static const std::vector<std::string>& GetHistoryTreeList();
+    static const std::string GetNewestTreeName();
 	static std::shared_ptr<FileTree> GetHistoryTree(std::string name);
 
   private:
 	class FileTreeData;
 	std::unique_ptr<FileTreeData> data;
 
+    static std::vector<std::string> history_trees_list;
 	static std::unordered_map<std::string, std::shared_ptr<FileTree>> history_trees;
 };
 

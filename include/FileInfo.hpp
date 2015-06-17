@@ -1,8 +1,12 @@
 #ifndef FILEINFO_HPP
 #define FILEINFO_HPP
 
-#include <memory>
+#include <cereal/types/memory.hpp>
+#include <cereal/archives/binary.hpp>
+#include <cereal/archives/json.hpp>
+#include <cereal/access.hpp>
 
+#include <memory>
 #include <ctime>
 #include <sys/stat.h>
 
@@ -30,6 +34,17 @@ struct file_params {
 
 	bool operator==(const file_params &second) const;
 	bool operator!=(const file_params &second) const;
+
+    template <class Archive>
+    void serialize(Archive & ar) {
+        ar(
+            cereal::make_nvp("permissions", permissions),
+            cereal::make_nvp("st_uid", st_uid),
+            cereal::make_nvp("st_gid", st_gid),
+            cereal::make_nvp("file_size", file_size),
+            cereal::make_nvp("modification_time", modification_time)
+        );
+    }
 };
 
 class FileInfo {
@@ -57,7 +72,24 @@ class FileInfo {
   private:
 	class FileInfoData;
 	std::unique_ptr<FileInfoData> data;
+
+    //template <class Archive>
+    //friend void serialize(Archive & archive, FileInfo & my);
+
+    void serialize_internal(cereal::JSONOutputArchive & archive);
+    //void serialize_internal(cereal::JSONInputArchive & archive);
+    void serialize_internal(cereal::BinaryOutputArchive & archive);
+    //void serialize_internal(cereal::BinaryInputArchive & archive);
+
+    template<class Archive>
+    void serialize(Archive & archive) {
+        serialize_internal(archive);
+    }
+
+    friend class cereal::access;
 };
+
+
 
 }
 #endif // FILEINFO_HPP
