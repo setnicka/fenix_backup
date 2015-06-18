@@ -3,10 +3,8 @@
 #include <ctime>
 #include <boost/filesystem.hpp>
 
-#include <cereal/cereal.hpp>
-#include <cereal/archives/binary.hpp>
-#include <cereal/archives/json.hpp>
 #include <cereal/types/memory.hpp>
+#include <cereal/types/polymorphic.hpp>
 #include <cereal/types/vector.hpp>
 
 #include "FileTree.hpp"
@@ -38,14 +36,15 @@ class FileTree::FileTreeData {
         ar(
             cereal::make_nvp("tree_name", tree_name),
             cereal::make_nvp("prev_version_tree_name", prev_version_tree_name),
-            cereal::make_nvp("root", root)
-            //cereal::make_nvp("files", files)
+            cereal::make_nvp("root", root),
+            cereal::make_nvp("filesById", files)
         );
     }
 };
 
 FileTree::FileTreeData::FileTreeData() {
-    auto root = std::make_shared<FileInfo>(DIR, nullptr, "");
+    root = std::make_shared<FileInfo>(DIR, nullptr, "");
+    root->SetId(0); root->SetPrevVersionId(0);
     files.push_back(root);
 
     // Construct tree name from current datetime
@@ -73,6 +72,9 @@ FileTree::FileTree(): data{new FileTreeData()} { }
 FileTree::FileTree(std::string name) {
 	// Load data from given FileTree name
     std::ifstream is(Config::GetTreeFilename(name));
+    cereal::JSONInputArchive archive(is);
+
+    archive(data);
 }
 
 FileTree::~FileTree() { }
@@ -91,8 +93,7 @@ const std::vector<std::string>& FileTree::GetHistoryTreeList() {
                 for (boost::filesystem::directory_iterator file(dir); file != boost::filesystem::directory_iterator(); ++file) {
                     if (boost::filesystem::is_regular_file(file->path())
                     && boost::filesystem::extension(file->path()) == Config::GetConfig().treeFileExtension) {
-                        boost::filesystem::path a = file->path();
-                        history_trees_list.push_back(a.replace_extension("").string());
+                        history_trees_list.push_back(boost::filesystem::basename(file->path()));
                     }
                 }
             }
@@ -144,8 +145,7 @@ std::shared_ptr<FileInfo> FileTree::FileTreeData::AddNode(file_type type, std::s
 		auto prev_version_tree = FileTree::GetHistoryTree(prev_version_tree_name);
 		std::shared_ptr<FileInfo> prev_version_parent;
 
-		if (parent->GetId() == 0) prev_version_parent = prev_version_tree->GetRoot();
-		else if (parent->GetPrevVersionId() != -1) prev_version_parent = prev_version_tree->GetFileById(parent->GetPrevVersionId());
+		if (parent->GetPrevVersionId() != -1) prev_version_parent = prev_version_tree->GetFileById(parent->GetPrevVersionId());
 
 		if (prev_version_parent != nullptr) {
 			std::shared_ptr<FileInfo> prev_version_file = prev_version_parent->GetChild(name);
@@ -184,7 +184,7 @@ std::shared_ptr<FileInfo> FileTree::GetFileById(unsigned int file_id) {
 
 
 std::vector<FileInfo> FileTree::CloseTree() {
-
+    // TODO
 	std::vector<FileInfo> t;
 	return t;
 }
@@ -196,7 +196,7 @@ void FileTree::SaveTree() {
     std::cout << Config::GetTreeFilename(data->tree_name) << std::endl;
     cereal::JSONOutputArchive archive(os);
 
-    //archive(data);
+    archive(cereal::make_nvp("FileTreeData", data));
 }
 
 }

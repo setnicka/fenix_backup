@@ -1,7 +1,6 @@
 #ifndef FILEINFO_HPP
 #define FILEINFO_HPP
 
-#include <cereal/types/memory.hpp>
 #include <cereal/archives/binary.hpp>
 #include <cereal/archives/json.hpp>
 #include <cereal/access.hpp>
@@ -73,13 +72,10 @@ class FileInfo {
 	class FileInfoData;
 	std::unique_ptr<FileInfoData> data;
 
-    //template <class Archive>
-    //friend void serialize(Archive & archive, FileInfo & my);
-
     void serialize_internal(cereal::JSONOutputArchive & archive);
-    //void serialize_internal(cereal::JSONInputArchive & archive);
+    void serialize_internal(cereal::JSONInputArchive & archive);
     void serialize_internal(cereal::BinaryOutputArchive & archive);
-    //void serialize_internal(cereal::BinaryInputArchive & archive);
+    void serialize_internal(cereal::BinaryInputArchive & archive);
 
     template<class Archive>
     void serialize(Archive & archive) {

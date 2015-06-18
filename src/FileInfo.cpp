@@ -1,11 +1,10 @@
 #include <unordered_map>
 #include <string>
 
-#include <cereal/cereal.hpp>
 #include <cereal/types/memory.hpp>
+#include <cereal/types/polymorphic.hpp>
 #include <cereal/types/string.hpp>
-#include <cereal/archives/binary.hpp>
-#include <cereal/archives/json.hpp>
+#include <cereal/types/unordered_map.hpp>
 
 #include "FileInfo.hpp"
 
@@ -34,6 +33,8 @@ class FileInfo::FileInfoData {
 	FileInfoData(file_type type, std::shared_ptr<FileInfo> parent, std::string const& name):
 		type{type}, parent{parent}, name{name} {}
 
+    FileInfoData() : FileInfoData(DIR, nullptr, "") {}
+
     template <class Archive>
     void serialize(Archive & ar) {
         ar(
@@ -42,8 +43,10 @@ class FileInfo::FileInfoData {
             cereal::make_nvp("version_status", version_status),
             cereal::make_nvp("params", params),
             cereal::make_nvp("file_index", file_index),
-            cereal::make_nvp("prev_version_file_index", prev_version_file_index)//,
-            //cereal::make_nvp("parent", parent)
+            cereal::make_nvp("prev_version_file_index", prev_version_file_index),
+            cereal::make_nvp("parent", parent),
+            cereal::make_nvp("files", files),
+            cereal::make_nvp("data_block", data_block)
         );
     }
 };
@@ -71,15 +74,15 @@ FileInfo& FileInfo::operator=(const FileInfo& rhs) {
 void FileInfo::serialize_internal(cereal::JSONOutputArchive & archive) {
   archive(cereal::make_nvp("FileInfoData", data));
 }
-/*void FileInfo::serialize_internal(cereal::JSONInputArchive & archive) {
+void FileInfo::serialize_internal(cereal::JSONInputArchive & archive) {
   archive(cereal::make_nvp("FileInfoData", data));
-}*/
+}
 void FileInfo::serialize_internal(cereal::BinaryOutputArchive & archive) {
   archive(cereal::make_nvp("FileInfoData", data));
 }
-/*void FileInfo::serialize_internal(cereal::BinaryInputArchive & archive) {
+void FileInfo::serialize_internal(cereal::BinaryInputArchive & archive) {
   archive(cereal::make_nvp("FileInfoData", data));
-}*/
+}
 
 void FileInfo::AddChild(std::string const& name, std::shared_ptr<FileInfo> child) {
 	if (data->type != DIR) throw std::runtime_error("Cannot add child to not-dir FileInfo");
@@ -91,7 +94,6 @@ std::shared_ptr<FileInfo> FileInfo::GetChild(std::string const& name) {
 	if (i == data->files.end()) return nullptr;
 	else return i->second;
 }
-
 
 // Setters
 void FileInfo::SetParams(file_params params) { data->params = params; }
