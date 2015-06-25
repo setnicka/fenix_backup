@@ -21,12 +21,22 @@ int main() {
         auto tree = new FenixBackup::FileTree();
 
         FenixBackup::file_params params = {};
+        params.file_size = 12;
         auto f1 = tree->AddFile(tree->GetRoot(), "souborB.txt", params);
         auto d1 = tree->AddDirectory(tree->GetRoot(), "slozka", params);
         auto f2 = tree->AddFile(d1, "souborAA.txt", params);
         auto f3 = tree->AddFile(d1, "souborAAAA.txt", params);
 
         tree->SaveTree();
+
+        istringstream ss("ABCDEFGAAAAAABBBBAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
+        // ifstream ifs;
+        // ifs.open("/home/jirka/bc_FenixBackup/test/config");
+        tree->ProcessFileContent(f1, ss);
+
+
+        tree->GetFileContent(f1, cout);
+
 	} catch(FenixBackup::FenixException &ex) {
 		cerr << ex.what();
 		return(EXIT_FAILURE);
