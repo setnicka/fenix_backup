@@ -10,11 +10,20 @@
 
 namespace FenixBackup {
 
+bool file_params::operator==(const file_params &second) const {
+    return (permissions == second.permissions
+            && st_uid == second.st_uid
+            && st_gid == second.st_gid
+            && file_size == second.file_size
+            && modification_time == second.modification_time);
+}
+bool file_params::operator!=(const file_params &second) const { return !operator==(second); }
+
 // Hide data from .hpp file using PIMP idiom
 class FileInfo::FileInfoData {
   public:
 	file_type type;
-	version_file_status version_status = UNKNOWN_FILE;
+	version_file_status version_status = UNKNOWN;
 	file_params params = {};
 
 	// Versioning
@@ -28,7 +37,8 @@ class FileInfo::FileInfoData {
 	// For directory
 	std::unordered_map<std::string, std::shared_ptr<FileInfo>> files;
 	// For ordinal file
-	std::string data_block;  // hash of the corresponding data block
+	std::string file_hash;
+	std::string file_chunk_name;
 
 	FileInfoData(file_type type, std::shared_ptr<FileInfo> parent, std::string const& name):
 		type{type}, parent{parent}, name{name} {}
@@ -46,7 +56,8 @@ class FileInfo::FileInfoData {
             cereal::make_nvp("prev_version_file_index", prev_version_file_index),
             cereal::make_nvp("parent", parent),
             cereal::make_nvp("files", files),
-            cereal::make_nvp("data_block", data_block)
+            cereal::make_nvp("file_hash", file_hash),
+            cereal::make_nvp("file_chunk_name", file_chunk_name)
         );
     }
 };
@@ -100,11 +111,15 @@ void FileInfo::SetParams(file_params params) { data->params = params; }
 void FileInfo::SetStatus(version_file_status status) { data->version_status = status; }
 void FileInfo::SetId(int index) { data->file_index = index; }
 void FileInfo::SetPrevVersionId(int index) { data->prev_version_file_index = index; }
+void FileInfo::SetFileHash(std::string file_hash) { data->file_hash = file_hash; }
+void FileInfo::SetChunkName(std::string file_chunk_name) { data->file_chunk_name = file_chunk_name; }
 // Getters
 file_type FileInfo::GetType() { return data->type; }
 version_file_status FileInfo::GetVersionStatus() { return data->version_status; }
 file_params FileInfo::GetParams() { return data->params; }
 int FileInfo::GetId() { return data->file_index; }
 int FileInfo::GetPrevVersionId() { return data->prev_version_file_index; }
+const std::string& FileInfo::GetFileHash() { return data->file_hash; }
+const std::string& FileInfo::GetChunkName() { return data->file_chunk_name; }
 
 }

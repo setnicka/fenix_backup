@@ -21,8 +21,8 @@ class FileTree {
 	std::shared_ptr<FileInfo> AddDirectory(std::shared_ptr<FileInfo> parent, std::string const& name, file_params params);
 	std::shared_ptr<FileInfo> AddFile(std::shared_ptr<FileInfo> parent, std::string const& name, file_params params);
 
-	std::shared_ptr<FileInfo> GetFileByPath(std::string file_path);
-	std::shared_ptr<FileInfo> GetFileByHash(std::string file_hash);
+	std::shared_ptr<FileInfo> GetFileByPath(std::string const& file_path);
+	std::shared_ptr<FileInfo> GetFileByHash(std::string const& file_hash);
 	std::shared_ptr<FileInfo> GetFileById(unsigned int file_id);
 
 	std::vector<FileInfo> CloseTree(); // End construction of the file tree and return the files which it wants to download them (TODO: ordered by priority)
@@ -30,10 +30,14 @@ class FileTree {
 	// Saving functions
 	const std::string& GetTreeName();
 	void SaveTree();
+	void SetNextVersionName(std::string name);
+	std::shared_ptr<FileTree> GetNextVersion();
+	std::shared_ptr<FileTree> GetPrevVersion();
 
 	// In the packing process
-	void ProcessFileContent(std::shared_ptr<FileInfo> file_node, std::ifstream file);
+	void ProcessFileContent(std::shared_ptr<FileInfo> file_node,std::istream& file);
 
+    // Static functions
     static const std::vector<std::string>& GetHistoryTreeList();
     static const std::string GetNewestTreeName();
 	static std::shared_ptr<FileTree> GetHistoryTree(std::string name);

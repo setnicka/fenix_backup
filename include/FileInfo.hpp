@@ -13,14 +13,15 @@ namespace FenixBackup {
 
 enum file_type { DIR, FILE };
 
-enum version_file_status { UNKNOWN_FILE, NEW_FILE, UNCHANGED_FILE, UPDATED_FILE, NOT_UPDATED_FILE };
-// UNKNOWN_FILE - new file, which is not yet saved (there isn't any older file)
-// NEW_FILE - new file, which is saved
-// UNCHANGED_FILE - same as older saved version
+enum version_file_status { UNKNOWN, NEW, UNCHANGED, UPDATED_PARAMS, UPDATED_FILE, NOT_UPDATED };
+// UNKNOWN - new file, which is not yet saved (there isn't any older file)
+// NEW - new file, which is saved
+// UNCHANGED - same as older saved version
+// UPDATED_PARAMS - updated only params
 // UPDATED_FILE - updated content (and params) of the file (diff with older version or with empty file when new file)
-// NOT_UPDATED_FILE - there are changes, but content wasn't yet saved (there is older version)
+// NOT_UPDATED - there are changes, but content wasn't yet saved (there is older version)
 //
-// Paths: UNKNOWN_FILE->NEW_FILE, NOT_UPDATED_FILE->UPDATED_FILE
+// Paths: UNKNOWN->NEW, NOT_UPDATED->UPDATED_FILE
 
 struct file_params {
 	mode_t	permissions;		// protection
@@ -59,11 +60,17 @@ class FileInfo {
 	file_params GetParams();
 	int GetId();
 	int GetPrevVersionId();
+	const std::string& GetFileHash();
+	const std::string& GetChunkName();
 
 	void SetParams(file_params params);
 	void SetStatus(version_file_status status);
 	void SetId(int index);
 	void SetPrevVersionId(int index);
+	void SetFileHash(std::string file_hash);
+	void SetChunkName(std::string file_chunk_name);
+
+	std::shared_ptr<FileInfo> GetPrevVersion();
 
 	void AddChild(std::string const& name, std::shared_ptr<FileInfo> child);
 	std::shared_ptr<FileInfo> GetChild(std::string const& name);
