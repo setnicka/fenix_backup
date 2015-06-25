@@ -232,9 +232,18 @@ void FileTree::SetNextVersionName(std::string name) { data->next_version_tree_na
 std::shared_ptr<FileTree> FileTree::GetPrevVersion() { return GetHistoryTree(data->prev_version_tree_name); }
 std::shared_ptr<FileTree> FileTree::GetNextVersion() { return GetHistoryTree(data->next_version_tree_name); }
 
+std::ostream& FileTree::GetFileContent(std::shared_ptr<FileInfo> file_node, std::ostream& out) {
+    if (file_node != GetFileById(file_node->GetId())) throw FileTreeException("Cannot call GetFileContent with FileInfo from different FileTree\n");
+    if (file_node->GetType() == DIR) throw FileTreeException("Cannot get content of directory\n");
+
+    auto chunk = FileChunk::GetChunk(file_node->GetChunkName());
+    out << chunk->LoadAndReturn();
+    return out;
+}
+
 void FileTree::ProcessFileContent(std::shared_ptr<FileInfo> file_node, std::istream& file) {
-    if (file_node != GetFileById(file_node->GetId())) throw FileTreeException("Couldn't call ProcessFileContent with FileInfo from different FileTree\n");
-    if (file_node->GetType() == DIR) throw FileTreeException("Couldn't process content for directory\n");
+    if (file_node != GetFileById(file_node->GetId())) throw FileTreeException("Cannot call ProcessFileContent with FileInfo from different FileTree\n");
+    if (file_node->GetType() == DIR) throw FileTreeException("Cannot process content for directory\n");
 
     // 1. Count SHA256 hash of the given file
     SHA256 sha256;

@@ -35,7 +35,8 @@ class FileTree {
 	std::shared_ptr<FileTree> GetPrevVersion();
 
 	// In the packing process
-	void ProcessFileContent(std::shared_ptr<FileInfo> file_node,std::istream& file);
+	void ProcessFileContent(std::shared_ptr<FileInfo> file_node, std::istream& file);
+	std::ostream& GetFileContent(std::shared_ptr<FileInfo> file_node, std::ostream& out);
 
     // Static functions
     static const std::vector<std::string>& GetHistoryTreeList();

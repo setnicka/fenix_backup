@@ -12,6 +12,7 @@
 #include <cereal/types/vector.hpp>
 
 #include <google/vcencoder.h>
+#include <google/vcdecoder.h>
 
 namespace FenixBackup {
 
@@ -84,6 +85,7 @@ void FileChunk::ProcessStringAndSave(std::string ancestor_name, std::string cont
         ancestor = GetChunk(data->ancestor_chunk_name);
         if (ancestor == nullptr) throw FileChunkException("Cannot load ancestor '"+data->ancestor_chunk_name+"' of the FileChunk '"+data->chunk_name+"'\n");
         source = ancestor->LoadAndReturn();
+        data->depth = ancestor->GetDepth() + 1;
     }
 
     // 2. Encode new content using VCDIFF against source
@@ -92,7 +94,7 @@ void FileChunk::ProcessStringAndSave(std::string ancestor_name, std::string cont
     encoder.Encode(content.data(), content.size(), &output_string);
 
     // 3. Save new content
-    std::ofstream storage(Config::GetChunkFilename(data->chunk_name, true));
+    std::ofstream storage(Config::GetChunkFilename(data->chunk_name, true), std::ios::binary);
     storage.write(output_string.data(), output_string.size());
     storage.close();
 
@@ -111,7 +113,24 @@ void FileChunk::ProcessFileAndSave(std::string ancestor_name, std::string source
 }
 
 std::string FileChunk::LoadAndReturn() {
-    return "";
+    // 1. Get dictionary (source file) from ancestors
+    std::string source;
+    if (!data->ancestor_chunk_name.empty()) {
+        auto ancestor = GetChunk(data->ancestor_chunk_name);
+        if (ancestor == nullptr) throw FileChunkException("Cannot load ancestor '"+data->ancestor_chunk_name+"' of the FileChunk '"+data->chunk_name+"'\n");
+        source = ancestor->LoadAndReturn();
+    }
+
+    // 2. Open data file with VCDIFF
+    std::ifstream storage(Config::GetChunkFilename(data->chunk_name, true), std::ios::binary);
+    std::string delta(  (std::istreambuf_iterator<char>(storage)),
+                        (std::istreambuf_iterator<char>()       ));
+
+    // 3. Compute original file
+    open_vcdiff::VCDiffDecoder decoder;
+    std::string output;
+    decoder.Decode(source.data(), source.size(), delta, &output);
+    return output;
 }
 
 void FileChunk::LoadAndExtract(std::string target_path) {
@@ -121,25 +140,22 @@ void FileChunk::LoadAndExtract(std::string target_path) {
     output.close();
 }
 
-std::string FileChunk::GetAncestorName() { return data->ancestor_chunk_name; }
+const std::string& FileChunk::GetAncestorName() { return data->ancestor_chunk_name; }
+int FileChunk::GetDepth() { return data->depth; }
 
 void FileChunk::SkipAncestor() {
     // 1. Get new ancestor
-    if (data->ancestor_chunk_name.empty()) throw FileChunkException("FileChunk '"+data->chunk_name+"' ancestor, cannot skip ancestor\n");
+    if (data->ancestor_chunk_name.empty()) throw FileChunkException("FileChunk '"+data->chunk_name+"' has no ancestor, cannot skip ancestor\n");
     auto ancestor = GetChunk(data->ancestor_chunk_name);
     if (ancestor == nullptr) throw FileChunkException("Cannot load ancestor '"+data->ancestor_chunk_name+"' of the FileChunk '"+data->chunk_name+"'\n");
     std::string new_ancestor_name = ancestor->GetAncestorName();
-    auto new_ancestor = GetChunk(new_ancestor_name);
-    if (new_ancestor == nullptr) throw FileChunkException("Cannot load new ancestor '"+new_ancestor_name+"' for the '"+data->chunk_name+"'\n");
+    if (GetChunk(new_ancestor_name) == nullptr) throw FileChunkException("Cannot load new ancestor '"+new_ancestor_name+"' for the '"+data->chunk_name+"'\n");
 
     // TODO: Maybe some way to merge VCDIFFs instead of counting new?
     // 2. Get this chunk content, and compute new VCDIFF
     auto content = LoadAndReturn();
 
-
-    // TODO: Recompute chunk data acc ording to given ancestor
-    //data->ancestor_chunk_name = new_ancestor;
-    //FileChunk(new_ancestor)
+    ProcessStringAndSave(new_ancestor_name, content);
 }
 
 void FileChunk::DeleteChunk() {

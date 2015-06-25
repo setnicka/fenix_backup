@@ -20,7 +20,8 @@ class FileChunk {
     std::string LoadAndReturn();
     void LoadAndExtract(std::string target_path);
 
-    std::string GetAncestorName();
+    int GetDepth();
+    const std::string& GetAncestorName();
 
     /// Skip one level of ancestor and conpute new VCDIFF
     void SkipAncestor();
