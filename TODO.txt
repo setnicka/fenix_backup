@@ -13,10 +13,10 @@ Ukládání a načítání stromečků
 
 Datové chunky:
  * Schéma uložení datových chunků - zpočátku temp soubor, na jedno přečtení spočítat hash a začlenit
- * Odkaz na datové chunky ze stromu
- * Externí funkce na zpracování dat souboru
- * Přidání diff-u oproti jiné verzi
- * Vytáhnutí souboru v danné verzi
+ O Odkaz na datové chunky ze stromu
+ O Externí funkce na zpracování dat souboru
+ O Přidání diff-u oproti jiné verzi
+ O Vytáhnutí souboru v danné verzi
 
 -----
 
@@ -24,6 +24,6 @@ Mazání starých verzí:
  * Vnější funkce "smaž soubor X z verze Y"
  * Vnější funkce "smaž nějakou verzi souboru X"
  * Vnější funkce "smaž něco" (do nějaké velikosti?)
- * Interní smazání jedné verze souboru (aktualizace odkazů další verze)
+ O Interní smazání jedné verze souboru (aktualizace odkazů další verze)
    + Merge chunků
  * Interní smazání jednoho stromečku
