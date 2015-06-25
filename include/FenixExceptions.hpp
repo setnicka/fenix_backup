@@ -1,3 +1,5 @@
+#include <stdexcept>
+
 #ifndef FENIXEXCEPTIONS_HPP
 #define FENIXEXCEPTIONS_HPP
 
@@ -16,6 +18,11 @@ class ConfigException : public FenixException {
 class FileTreeException : public FenixException {
   public:
 	FileTreeException(std::string message): FenixException("FileTree error: "+message) {}
+};
+
+class FileChunkException : public FenixException {
+  public:
+	FileChunkException(std::string message): FenixException("FileChunk error: "+message) {}
 };
 
 }

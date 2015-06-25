@@ -50,8 +50,17 @@ const std::string Config::GetDataDir() {
     return data.baseDir + "/" + data.dataSubdir;
 }
 
+const std::string Config::GetTempDir() {
+    if (!loaded) throw ConfigException("No loaded config file!\n");
+    return data.baseDir + "/" + data.tempSubdir;
+}
+
 const std::string Config::GetTreeFilename(const std::string& filename) {
     return GetTreeDir() + "/" + filename + data.treeFileExtension;
+}
+
+const std::string Config::GetChunkFilename(const std::string& name, bool is_data) {
+    return GetDataDir() + "/" + name + (is_data ? data.chunkDataExtension : data.chunkMetaExtension);
 }
 
 }

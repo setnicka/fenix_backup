@@ -1,0 +1,162 @@
+#include <fstream>
+#include <algorithm>
+
+#include "FenixExceptions.hpp"
+#include "Config.hpp"
+#include "FileChunk.hpp"
+
+#include <cereal/archives/binary.hpp>
+#include <cereal/archives/json.hpp>
+#include <cereal/types/memory.hpp>
+#include <cereal/types/polymorphic.hpp>
+#include <cereal/types/vector.hpp>
+
+#include <google/vcencoder.h>
+
+namespace FenixBackup {
+
+std::unordered_map<std::string, std::shared_ptr<FileChunk>> FileChunk::loaded_chunks;
+
+class FileChunk::FileChunkData {
+  public:
+    std::string chunk_name;
+    std::string ancestor_chunk_name;
+    int depth = 0;
+    std::vector<std::string> derived_chunks;
+
+    FileChunkData(std::string chunk_name): chunk_name{chunk_name} {}
+
+    void SaveChunkInfo();
+    void LoadChunkInfo();
+
+    template <class Archive>
+    void serialize(Archive & ar) {
+        ar(
+            cereal::make_nvp("chunk_name", chunk_name),
+            cereal::make_nvp("ancestor_chunk_name", ancestor_chunk_name),
+            cereal::make_nvp("depth", depth),
+            cereal::make_nvp("derived_chunks", derived_chunks)
+        );
+    }
+};
+
+void FileChunk::FileChunkData::SaveChunkInfo() {
+    std::ofstream os(Config::GetChunkFilename(chunk_name));
+    cereal::JSONOutputArchive archive(os);
+
+    serialize(archive);
+}
+
+void FileChunk::FileChunkData::LoadChunkInfo() {
+	// Load data from given FileChunk meta file name
+    std::ifstream is(Config::GetChunkFilename(chunk_name));
+    if (!is.good()) throw FileChunkException("Couldn't load FileChunk '"+chunk_name+"' meta info (from filename '"+Config::GetChunkFilename(chunk_name)+"')\n");
+    cereal::JSONInputArchive archive(is);
+
+    serialize(archive);
+}
+
+////////
+
+std::shared_ptr<FileChunk> FileChunk::GetChunk(std::string chunk_name) {
+	if (loaded_chunks.find(chunk_name) == loaded_chunks.end()) {
+        if(!std::ifstream(Config::GetChunkFilename(chunk_name)).good()) return nullptr;
+		loaded_chunks.insert(std::make_pair(chunk_name, std::make_shared<FileChunk>(chunk_name, true)));
+    }
+
+	return loaded_chunks[chunk_name];
+}
+
+FileChunk::FileChunk(std::string chunk_name, bool load): data{new FileChunkData(chunk_name)} {
+    if (load) data->LoadChunkInfo();
+}
+
+FileChunk::~FileChunk() {}
+
+// Saving and loading
+void FileChunk::ProcessStringAndSave(std::string ancestor_name, std::string content) {
+    data->ancestor_chunk_name = ancestor_name;
+    // 1. Get source to diff against
+    std::string source;
+
+    std::shared_ptr<FileChunk> ancestor;
+    if (!ancestor_name.empty()) {
+        ancestor = GetChunk(data->ancestor_chunk_name);
+        if (ancestor == nullptr) throw FileChunkException("Cannot load ancestor '"+data->ancestor_chunk_name+"' of the FileChunk '"+data->chunk_name+"'\n");
+        source = ancestor->LoadAndReturn();
+    }
+
+    // 2. Encode new content using VCDIFF against source
+    std::string output_string;
+    open_vcdiff::VCDiffEncoder encoder(source.data(), source.size());
+    encoder.Encode(content.data(), content.size(), &output_string);
+
+    // 3. Save new content
+    std::ofstream storage(Config::GetChunkFilename(data->chunk_name, true));
+    storage.write(output_string.data(), output_string.size());
+    storage.close();
+
+    // 4. Save chunk info
+    data->SaveChunkInfo();
+    // Update ancestor in this moment, when derived chunk is saved
+    if (!ancestor_name.empty()) ancestor->AddDerivedChunk(data->chunk_name);
+}
+
+void FileChunk::ProcessFileAndSave(std::string ancestor_name, std::string source_path) {
+    std::ifstream ifs(source_path, std::ios::binary);
+    if (!ifs.good()) throw FileChunkException("Cannot read file '"+source_path+"'");
+    std::string content((std::istreambuf_iterator<char>(ifs)),
+                        (std::istreambuf_iterator<char>()   ));
+    ProcessStringAndSave(ancestor_name, content);
+}
+
+std::string FileChunk::LoadAndReturn() {
+    return "";
+}
+
+void FileChunk::LoadAndExtract(std::string target_path) {
+    std::ofstream output(target_path);
+    std::string content = LoadAndReturn();
+    output.write(content.data(), content.length());
+    output.close();
+}
+
+std::string FileChunk::GetAncestorName() { return data->ancestor_chunk_name; }
+
+void FileChunk::SkipAncestor() {
+    // 1. Get new ancestor
+    if (data->ancestor_chunk_name.empty()) throw FileChunkException("FileChunk '"+data->chunk_name+"' ancestor, cannot skip ancestor\n");
+    auto ancestor = GetChunk(data->ancestor_chunk_name);
+    if (ancestor == nullptr) throw FileChunkException("Cannot load ancestor '"+data->ancestor_chunk_name+"' of the FileChunk '"+data->chunk_name+"'\n");
+    std::string new_ancestor_name = ancestor->GetAncestorName();
+    auto new_ancestor = GetChunk(new_ancestor_name);
+    if (new_ancestor == nullptr) throw FileChunkException("Cannot load new ancestor '"+new_ancestor_name+"' for the '"+data->chunk_name+"'\n");
+
+    // TODO: Maybe some way to merge VCDIFFs instead of counting new?
+    // 2. Get this chunk content, and compute new VCDIFF
+    auto content = LoadAndReturn();
+
+
+    // TODO: Recompute chunk data acc ording to given ancestor
+    //data->ancestor_chunk_name = new_ancestor;
+    //FileChunk(new_ancestor)
+}
+
+void FileChunk::DeleteChunk() {
+    for (auto& chunk_name: data->derived_chunks) {
+        GetChunk(chunk_name)->SkipAncestor();
+    }
+}
+
+void FileChunk::AddDerivedChunk(std::string name) {
+    data->derived_chunks.push_back(name);
+    data->SaveChunkInfo();
+}
+
+void FileChunk::RemoveDerivedChunk(std::string name) {
+    auto it = std::find(data->derived_chunks.begin(), data->derived_chunks.end(), name);
+    if(it != data->derived_chunks.end()) data->derived_chunks.erase(it);
+    data->SaveChunkInfo();
+}
+
+}
