@@ -31,7 +31,7 @@ class FileChunk::FileChunkData {
     void LoadChunkInfo();
 
     template <class Archive>
-    void serialize(Archive & ar) {
+    void serialize(Archive & ar, std::uint32_t const version) {
         ar(
             cereal::make_nvp("chunk_name", chunk_name),
             cereal::make_nvp("ancestor_chunk_name", ancestor_chunk_name),
@@ -45,7 +45,8 @@ void FileChunk::FileChunkData::SaveChunkInfo() {
     std::ofstream os(Config::GetChunkFilename(chunk_name));
     cereal::JSONOutputArchive archive(os);
 
-    serialize(archive);
+    archive(*this);
+    //serialize(archive);
 }
 
 void FileChunk::FileChunkData::LoadChunkInfo() {
@@ -54,7 +55,8 @@ void FileChunk::FileChunkData::LoadChunkInfo() {
     if (!is.good()) throw FileChunkException("Couldn't load FileChunk '"+chunk_name+"' meta info (from filename '"+Config::GetChunkFilename(chunk_name)+"')\n");
     cereal::JSONInputArchive archive(is);
 
-    serialize(archive);
+    archive(*this);
+    //serialize(archive);
 }
 
 ////////
@@ -176,3 +178,4 @@ void FileChunk::RemoveDerivedChunk(std::string name) {
 }
 
 }
+CEREAL_CLASS_VERSION(FenixBackup::FileChunk::FileChunkData, 1);

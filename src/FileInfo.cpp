@@ -6,6 +6,7 @@
 #include <cereal/types/string.hpp>
 #include <cereal/types/unordered_map.hpp>
 
+#include "FenixExceptions.hpp"
 #include "FileInfo.hpp"
 
 namespace FenixBackup {
@@ -46,8 +47,8 @@ class FileInfo::FileInfoData {
     FileInfoData() : FileInfoData(DIR, nullptr, "") {}
 
     template <class Archive>
-    void serialize(Archive & ar) {
-        ar(
+    void serialize(Archive & ar, std::uint32_t const version) {
+        if (version <= 1) ar(
             cereal::make_nvp("name", name),
             cereal::make_nvp("type", type),
             cereal::make_nvp("version_status", version_status),
@@ -59,6 +60,7 @@ class FileInfo::FileInfoData {
             cereal::make_nvp("file_hash", file_hash),
             cereal::make_nvp("file_chunk_name", file_chunk_name)
         );
+        else throw FileInfoException("Unknown version "+std::to_string(version)+" of FileInfo serialized data\n");
     }
 };
 
@@ -123,3 +125,4 @@ const std::string& FileInfo::GetFileHash() { return data->file_hash; }
 const std::string& FileInfo::GetChunkName() { return data->file_chunk_name; }
 
 }
+CEREAL_CLASS_VERSION(FenixBackup::FileInfo::FileInfoData, 1);

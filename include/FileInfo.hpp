@@ -75,8 +75,8 @@ class FileInfo {
 	void AddChild(std::string const& name, std::shared_ptr<FileInfo> child);
 	std::shared_ptr<FileInfo> GetChild(std::string const& name);
 
+    class FileInfoData;
   private:
-	class FileInfoData;
 	std::unique_ptr<FileInfoData> data;
 
     void serialize_internal(cereal::JSONOutputArchive & archive);

@@ -15,6 +15,11 @@ class ConfigException : public FenixException {
 	ConfigException(std::string message): FenixException("Config error: "+message) {}
 };
 
+class FileInfoException : public FenixException {
+  public:
+	FileInfoException(std::string message): FenixException("FileInfo error: "+message) {}
+};
+
 class FileTreeException : public FenixException {
   public:
 	FileTreeException(std::string message): FenixException("FileTree error: "+message) {}

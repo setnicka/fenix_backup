@@ -34,8 +34,8 @@ class FileChunk {
     // Static functions
 	static std::shared_ptr<FileChunk> GetChunk(std::string name);
 
-  private:
     class FileChunkData;
+  private:
     std::unique_ptr<FileChunkData> data;
 
 	static std::unordered_map<std::string, std::shared_ptr<FileChunk>> loaded_chunks;

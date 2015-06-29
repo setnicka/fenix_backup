@@ -36,8 +36,8 @@ class FileTree::FileTreeData {
 	std::shared_ptr<FileInfo> AddNode(file_type type, std::shared_ptr<FileInfo> parent, std::string const& name, file_params params);
 
     template <class Archive>
-    void serialize(Archive & ar) {
-        ar(
+    void serialize(Archive & ar, std::uint32_t const version) {
+        if (version <= 1) ar(
             cereal::make_nvp("tree_name", tree_name),
             cereal::make_nvp("prev_version_tree_name", prev_version_tree_name),
             cereal::make_nvp("next_version_tree_name", next_version_tree_name),
@@ -45,6 +45,7 @@ class FileTree::FileTreeData {
             cereal::make_nvp("filesById", files),
             cereal::make_nvp("filesByHash", file_hashes)
         );
+        else throw FileTreeException("Unknown version "+std::to_string(version)+" of FileTree serialized data\n");
     }
 };
 
@@ -288,3 +289,4 @@ void FileTree::ProcessFileContent(std::shared_ptr<FileInfo> file_node, std::istr
 }
 
 }
+CEREAL_CLASS_VERSION(FenixBackup::FileTree::FileTreeData, 1);

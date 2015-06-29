@@ -43,8 +43,8 @@ class FileTree {
     static const std::string GetNewestTreeName();
 	static std::shared_ptr<FileTree> GetHistoryTree(std::string name);
 
+    class FileTreeData;
   private:
-	class FileTreeData;
 	std::unique_ptr<FileTreeData> data;
 
     static std::vector<std::string> history_trees_list;
