@@ -1,6 +1,7 @@
 #include <iostream>
 #include <fstream>
 #include "FileTree.hpp"
+#include "FileChunk.hpp"
 #include "FenixExceptions.hpp"
 
 #include <cereal/types/memory.hpp>
@@ -30,12 +31,15 @@ int main() {
         tree->SaveTree();
 
         istringstream ss("ABCDEFGAAAAAABBBBAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
-        // ifstream ifs;
-        // ifs.open("/home/jirka/bc_FenixBackup/test/config");
+        ifstream ifs;
+        ifs.open("/home/jirka/bc_FenixBackup/test/config");
         tree->ProcessFileContent(f1, ss);
 
 
         tree->GetFileContent(f1, cout);
+
+        auto chunk = FenixBackup::FileChunk::GetChunk("2015-06-29_225718_1");
+        if (chunk) chunk->DeleteChunk();
 
 	} catch(FenixBackup::FenixException &ex) {
 		cerr << ex.what();

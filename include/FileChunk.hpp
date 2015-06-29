@@ -22,6 +22,7 @@ class FileChunk {
 
     int GetDepth();
     const std::string& GetAncestorName();
+    size_t GetSize();
 
     /// Skip one level of ancestor and conpute new VCDIFF
     void SkipAncestor();

@@ -24,6 +24,7 @@ class FileChunk::FileChunkData {
     std::string ancestor_chunk_name;
     int depth = 0;
     std::vector<std::string> derived_chunks;
+    size_t chunk_size = 0;
 
     FileChunkData(std::string chunk_name): chunk_name{chunk_name} {}
 
@@ -36,6 +37,7 @@ class FileChunk::FileChunkData {
             cereal::make_nvp("chunk_name", chunk_name),
             cereal::make_nvp("ancestor_chunk_name", ancestor_chunk_name),
             cereal::make_nvp("depth", depth),
+            cereal::make_nvp("chunk_size", chunk_size),
             cereal::make_nvp("derived_chunks", derived_chunks)
         );
     }
@@ -99,6 +101,8 @@ void FileChunk::ProcessStringAndSave(std::string ancestor_name, std::string cont
     std::ofstream storage(Config::GetChunkFilename(data->chunk_name, true), std::ios::binary);
     storage.write(output_string.data(), output_string.size());
     storage.close();
+    data->chunk_size = output_string.size();
+    // TODO: Count size of chunk metadata to the final size?
 
     // 4. Save chunk info
     data->SaveChunkInfo();
@@ -144,6 +148,7 @@ void FileChunk::LoadAndExtract(std::string target_path) {
 
 const std::string& FileChunk::GetAncestorName() { return data->ancestor_chunk_name; }
 int FileChunk::GetDepth() { return data->depth; }
+size_t FileChunk::GetSize() { return data->chunk_size; }
 
 void FileChunk::SkipAncestor() {
     // 1. Get new ancestor
@@ -164,6 +169,8 @@ void FileChunk::DeleteChunk() {
     for (auto& chunk_name: data->derived_chunks) {
         GetChunk(chunk_name)->SkipAncestor();
     }
+    remove(Config::GetChunkFilename(data->chunk_name).c_str());
+    remove(Config::GetChunkFilename(data->chunk_name, true).c_str());
 }
 
 void FileChunk::AddDerivedChunk(std::string name) {

@@ -272,6 +272,18 @@ void FileTree::ProcessFileContent(std::shared_ptr<FileInfo> file_node, std::istr
         }
     }
 
+    // If file has the same size and same hash as older file, there were only params updated
+    if (GetPrevVersion() != nullptr) {
+            auto prev_version_node = GetPrevVersion()->GetFileById(file_node->GetId());
+            if (prev_version_node != nullptr
+                && file_node->GetParams().file_size == prev_version_node->GetParams().file_size
+                && file_node->GetFileHash() == prev_version_node->GetFileHash()
+            ) {
+                file_node->SetStatus(UPDATED_PARAMS);
+                return;
+            }
+    }
+
     // 3. Compute and save FileChunk
     std::string chunk_name = GetTreeName() + "_" + std::to_string(file_node->GetId());
     FileChunk chunk(chunk_name);
