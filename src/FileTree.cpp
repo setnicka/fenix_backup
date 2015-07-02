@@ -215,11 +215,15 @@ std::vector<FileInfo> FileTree::CloseTree() {
 const std::string& FileTree::GetTreeName() { return data->tree_name; }
 
 void FileTree::SaveTree() {
-    std::ofstream os(Config::GetTreeFilename(data->tree_name));
-    // std::cout << Config::GetTreeFilename(data->tree_name) << std::endl;
-    cereal::JSONOutputArchive archive(os);
-
-    archive(cereal::make_nvp("FileTreeData", data));
+    std::string temp_name = Config::GetTreeFilename(data->tree_name)+".tmp";
+    std::ofstream os(temp_name, std::ios::binary);
+    {
+        cereal::JSONOutputArchive archive(os);
+        archive(cereal::make_nvp("FileTreeData", data));
+    }
+    // Need to unallocate archive (to finish the data) before closing ofstream
+    os.close();
+    rename(temp_name.c_str(), Config::GetTreeFilename(data->tree_name).c_str());
 
     // Save that this is the next tree for the previous tree
     auto prev = GetPrevVersion();

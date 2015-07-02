@@ -9,7 +9,7 @@ Přidávání souborů:
 Ukládání a načítání stromečků
  O Načítání seznamu starších stromečků + konstrukce jména nového
  O Serializace a deserializace FileInfo a FileTree pomocí Cereal
- * Při ukládání ukládat do temp souboru a pak atomický move
+ O Při ukládání ukládat do temp souboru a pak atomický move
 
 Datové chunky:
  * Schéma uložení datových chunků - zpočátku temp soubor, na jedno přečtení spočítat hash a začlenit
