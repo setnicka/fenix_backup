@@ -1,5 +1,5 @@
 PROG=fenix_tester
-CLASSES=Config FileInfo FileTree FileChunk
+CLASSES=Config FileInfo FileTree FileChunk Functions
 OTHER=fenix_tester.o sha256.o
 OBJS=$(addprefix obj/,${OTHER} $(addsuffix .o,${CLASSES}))
 

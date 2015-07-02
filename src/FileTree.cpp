@@ -7,11 +7,10 @@
 #include <cereal/types/vector.hpp>
 #include <cereal/types/unordered_map.hpp>
 
-#include <sha256.h>
-
 #include "FenixExceptions.hpp"
 #include "FileTree.hpp"
 #include "FileChunk.hpp"
+#include "Functions.hpp"
 
 namespace FenixBackup {
 
@@ -21,14 +20,14 @@ std::vector<std::string> FileTree::history_trees_list;
 // Hide data from .hpp file using PIMP idiom
 class FileTree::FileTreeData {
   public:
-    FileTreeData();
+    FileTreeData(bool not_initialize = false);
 
 	std::shared_ptr<FileInfo> root;
 	std::string tree_name;
 
 	// Versioning
 	std::string prev_version_tree_name;
-	std::string next_version_tree_name;
+	std::string prev_version_hash;
 
 	std::vector<std::shared_ptr<FileInfo>> files;
 	std::unordered_map<std::string, std::shared_ptr<FileInfo>> file_hashes;
@@ -40,7 +39,7 @@ class FileTree::FileTreeData {
         if (version <= 1) ar(
             cereal::make_nvp("tree_name", tree_name),
             cereal::make_nvp("prev_version_tree_name", prev_version_tree_name),
-            cereal::make_nvp("next_version_tree_name", next_version_tree_name),
+            cereal::make_nvp("prev_version_hash", prev_version_hash),
             cereal::make_nvp("root", root),
             cereal::make_nvp("filesById", files),
             cereal::make_nvp("filesByHash", file_hashes)
@@ -49,7 +48,8 @@ class FileTree::FileTreeData {
     }
 };
 
-FileTree::FileTreeData::FileTreeData() {
+FileTree::FileTreeData::FileTreeData(bool initialize) {
+    if (!initialize) return;
     root = std::make_shared<FileInfo>(DIR, nullptr, "");
     root->SetId(0); root->SetPrevVersionId(0);
     files.push_back(root);
@@ -63,18 +63,21 @@ FileTree::FileTreeData::FileTreeData() {
     std::strftime(buffer, 80 , Config::GetConfig().treeFilePattern.c_str(), timeinfo);
     tree_name = std::string(buffer);
 
-    // Get last tree name
-    if (FileTree::GetNewestTreeName() != "") {
-        prev_version_tree_name = FileTree::GetNewestTreeName();
+    // Get last tree name anc construct name for this tree
+    prev_version_tree_name = FileTree::GetNewestTreeName();
+    if (prev_version_tree_name != "") {
         while (prev_version_tree_name.find(tree_name) != std::string::npos) {
             // New name is substring of the previous name -> more FileTrees from the same datetime, add char to the end
             tree_name = tree_name+"x";
         }
+        // Count SHA256 hash of the previous tree and save it
+        std::ifstream file(Config::GetTreeFilename(prev_version_tree_name));
+        prev_version_hash = Functions::ComputeFileHash(file);
     }
 }
 
 
-FileTree::FileTree(): data{new FileTreeData()} { }
+FileTree::FileTree(): data{new FileTreeData(true)} {}
 
 FileTree::FileTree(std::string name) {
 	// Load data from given FileTree name
@@ -127,7 +130,6 @@ std::shared_ptr<FileTree> FileTree::GetHistoryTree(std::string name) {
         if(!std::ifstream(Config::GetTreeFilename(name)).good()) return nullptr;
 		history_trees.insert(std::make_pair(name, std::make_shared<FileTree>(name)));
     }
-
 	return history_trees[name];
 }
 
@@ -224,18 +226,19 @@ void FileTree::SaveTree() {
     // Need to unallocate archive (to finish the data) before closing ofstream
     os.close();
     rename(temp_name.c_str(), Config::GetTreeFilename(data->tree_name).c_str());
-
-    // Save that this is the next tree for the previous tree
-    auto prev = GetPrevVersion();
-    if (prev) {
-        prev->SetNextVersionName(GetTreeName());
-        prev->SaveTree();
-    }
 }
 
-void FileTree::SetNextVersionName(std::string name) { data->next_version_tree_name = name; }
 std::shared_ptr<FileTree> FileTree::GetPrevVersion() { return GetHistoryTree(data->prev_version_tree_name); }
-std::shared_ptr<FileTree> FileTree::GetNextVersion() { return GetHistoryTree(data->next_version_tree_name); }
+std::shared_ptr<FileTree> FileTree::GetNextVersion() {
+    auto trees = GetHistoryTreeList();
+    for (auto i = trees.rbegin(); i != trees.rend(); ++i) {
+        if (GetTreeName().compare(*i) == 0) break;
+        auto tree = GetHistoryTree(*i);
+        if (tree->GetPrevVersion()->GetTreeName() == GetTreeName()) return(tree);
+    }
+
+    return nullptr;
+}
 
 std::ostream& FileTree::GetFileContent(std::shared_ptr<FileInfo> file_node, std::ostream& out) {
     if (file_node != GetFileById(file_node->GetId())) throw FileTreeException("Cannot call GetFileContent with FileInfo from different FileTree\n");
@@ -251,15 +254,7 @@ void FileTree::ProcessFileContent(std::shared_ptr<FileInfo> file_node, std::istr
     if (file_node->GetType() == DIR) throw FileTreeException("Cannot process content for directory\n");
 
     // 1. Count SHA256 hash of the given file
-    SHA256 sha256;
-    auto buffer = new char[1024];
-    while (!file.eof()) {
-            file.read(buffer, 1024);
-            sha256.add(buffer, file.gcount());
-    }
-    file.clear();
-    file.seekg(0);
-    std::string file_hash = sha256.getHash();
+    std::string file_hash = Functions::ComputeFileHash(file);
 
     file_node->SetFileHash(file_hash);
     data->file_hashes.insert(std::make_pair(file_hash, file_node));

@@ -30,7 +30,6 @@ class FileTree {
 	// Saving functions
 	const std::string& GetTreeName();
 	void SaveTree();
-	void SetNextVersionName(std::string name);
 	std::shared_ptr<FileTree> GetNextVersion();
 	std::shared_ptr<FileTree> GetPrevVersion();
 
