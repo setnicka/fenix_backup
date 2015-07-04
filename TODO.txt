@@ -12,11 +12,16 @@ Ukládání a načítání stromečků
  O Při ukládání ukládat do temp souboru a pak atomický move
 
 Datové chunky:
- * Schéma uložení datových chunků - zpočátku temp soubor, na jedno přečtení spočítat hash a začlenit
+ O Schéma uložení datových chunků - zpočátku temp soubor, na jedno přečtení spočítat hash a začlenit
  O Odkaz na datové chunky ze stromu
  O Externí funkce na zpracování dat souboru
  O Přidání diff-u oproti jiné verzi
  O Vytáhnutí souboru v danné verzi
+
+Adaptéry:
+ O Adaptérová baseclass
+ O Adaptér lokálního filesystému
+ * Adptér umí dodávat soubory
 
 -----
 
@@ -25,5 +30,5 @@ Mazání starých verzí:
  * Vnější funkce "smaž nějakou verzi souboru X"
  * Vnější funkce "smaž něco" (do nějaké velikosti?)
  O Interní smazání jedné verze souboru (aktualizace odkazů další verze)
-   + Merge chunků
+   * Merge chunků
  * Interní smazání jednoho stromečku

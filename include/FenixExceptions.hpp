@@ -30,6 +30,11 @@ class FileChunkException : public FenixException {
 	FileChunkException(std::string message): FenixException("FileChunk error: "+message) {}
 };
 
+class AdapterException : public FenixException {
+  public:
+	AdapterException(std::string message): FenixException("Adapter error: "+message) {}
+};
+
 }
 
 #endif // FENIXEXCEPTIONS_HPP
