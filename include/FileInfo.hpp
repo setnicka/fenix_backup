@@ -25,8 +25,8 @@ enum version_file_status { UNKNOWN, NEW, UNCHANGED, UPDATED_PARAMS, UPDATED_FILE
 
 struct file_params {
 	mode_t	permissions;		// protection
-	uid_t	st_uid;				// user ID of owner
-	gid_t	st_gid;				// group ID of owner
+	uid_t	uid;				// user ID of owner
+	gid_t	gid;				// group ID of owner
 	off_t	file_size;			// total size, in bytes
 	// time_t	access_time;		// time of last access
 	time_t	modification_time;	// time of last modification
@@ -39,8 +39,8 @@ struct file_params {
     void serialize(Archive & ar) {
         ar(
             cereal::make_nvp("permissions", permissions),
-            cereal::make_nvp("st_uid", st_uid),
-            cereal::make_nvp("st_gid", st_gid),
+            cereal::make_nvp("uid", uid),
+            cereal::make_nvp("gid", gid),
             cereal::make_nvp("file_size", file_size),
             cereal::make_nvp("modification_time", modification_time)
         );

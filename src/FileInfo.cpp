@@ -13,8 +13,8 @@ namespace FenixBackup {
 
 bool file_params::operator==(const file_params &second) const {
     return (permissions == second.permissions
-            && st_uid == second.st_uid
-            && st_gid == second.st_gid
+            && uid == second.uid
+            && gid == second.gid
             && file_size == second.file_size
             && modification_time == second.modification_time);
 }

@@ -98,7 +98,7 @@ std::shared_ptr<FileInfo> FileTree::GetRoot() { return data->root; }
 
 const std::vector<std::string>& FileTree::GetHistoryTreeList() {
     if (history_trees_list.empty()) {
-        boost::filesystem::path dir (Config::GetTreeDir());
+        boost::filesystem::path dir(Config::GetTreeDir());
         try {
             if (boost::filesystem::exists(dir) && boost::filesystem::is_directory(dir)) {
                 for (boost::filesystem::directory_iterator file(dir); file != boost::filesystem::directory_iterator(); ++file) {
@@ -131,6 +131,12 @@ std::shared_ptr<FileTree> FileTree::GetHistoryTree(std::string name) {
 		history_trees.insert(std::make_pair(name, std::make_shared<FileTree>(name)));
     }
 	return history_trees[name];
+}
+
+std::shared_ptr<FileTree> FileTree::GetNewTree() {
+    auto tree = std::make_shared<FileTree>();
+    history_trees.insert(std::make_pair(tree->GetTreeName(), tree));
+    return tree;
 }
 
 std::shared_ptr<FileInfo> FileTree::AddDirectory(std::shared_ptr<FileInfo> parent, std::string const& name, file_params params) {
@@ -208,9 +214,11 @@ std::shared_ptr<FileInfo> FileTree::GetFileByHash(std::string const& file_hash) 
 }
 
 
-std::vector<FileInfo> FileTree::CloseTree() {
+std::vector<std::shared_ptr<FileInfo>> FileTree::FinishTree() {
+    SaveTree();
+
     // TODO
-	std::vector<FileInfo> t;
+	std::vector<std::shared_ptr<FileInfo>> t;
 	return t;
 }
 
