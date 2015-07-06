@@ -23,7 +23,7 @@ class FileTree {
 
 	std::shared_ptr<FileInfo> GetFileByPath(std::string const& file_path);
 	std::shared_ptr<FileInfo> GetFileByHash(std::string const& file_hash);
-	std::shared_ptr<FileInfo> GetFileById(int file_id);
+	std::shared_ptr<FileInfo> GetFileById(unsigned int file_id);
 
 	std::vector<std::shared_ptr<FileInfo>> FinishTree(); // End construction of the file tree and return the files which it wants to download them (TODO: ordered by priority)
 

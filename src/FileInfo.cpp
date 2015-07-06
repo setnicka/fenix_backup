@@ -30,7 +30,7 @@ class FileInfo::FileInfoData {
 	// Versioning
 	// std::string last_version;  // name of the last version
     unsigned int file_index;
-    unsigned int prev_version_file_index = -1;  // index of the file in the last version, -1 = no previous version
+    unsigned int prev_version_file_index = 0;  // index of the file in the last version, 0 = no previous version
 
     std::shared_ptr<FileInfo> parent;
     std::string name;
@@ -111,8 +111,8 @@ std::shared_ptr<FileInfo> FileInfo::GetChild(std::string const& name) {
 // Setters
 void FileInfo::SetParams(file_params params) { data->params = params; }
 void FileInfo::SetStatus(version_file_status status) { data->version_status = status; }
-void FileInfo::SetId(int index) { data->file_index = index; }
-void FileInfo::SetPrevVersionId(int index) { data->prev_version_file_index = index; }
+void FileInfo::SetId(unsigned int index) { data->file_index = index; }
+void FileInfo::SetPrevVersionId(unsigned int index) { data->prev_version_file_index = index; }
 void FileInfo::SetFileHash(std::string file_hash) { data->file_hash = file_hash; }
 void FileInfo::SetChunkName(std::string file_chunk_name) { data->file_chunk_name = file_chunk_name; }
 // Getters
@@ -120,7 +120,7 @@ const std::string& FileInfo::GetName() { return data->name; }
 file_type FileInfo::GetType() { return data->type; }
 version_file_status FileInfo::GetVersionStatus() { return data->version_status; }
 file_params FileInfo::GetParams() { return data->params; }
-int FileInfo::GetId() { return data->file_index; }
+unsigned int FileInfo::GetId() { return data->file_index; }
 std::string FileInfo::GetPath() {
     std::string path = data->name;
     auto parent = GetParent();
@@ -131,7 +131,7 @@ std::string FileInfo::GetPath() {
     return path;
 }
 std::shared_ptr<FileInfo> FileInfo::GetParent() { return data->parent; }
-int FileInfo::GetPrevVersionId() { return data->prev_version_file_index; }
+unsigned int FileInfo::GetPrevVersionId() { return data->prev_version_file_index; }
 const std::string& FileInfo::GetFileHash() { return data->file_hash; }
 const std::string& FileInfo::GetChunkName() { return data->file_chunk_name; }
 

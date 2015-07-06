@@ -54,7 +54,8 @@ class FileTree::FileTreeData {
 FileTree::FileTreeData::FileTreeData(bool initialize) {
     if (!initialize) return;
     root = std::make_shared<FileInfo>(DIR, nullptr, "");
-    root->SetId(0); root->SetPrevVersionId(0);
+    root->SetId(1); root->SetPrevVersionId(1);
+    files.push_back(nullptr);
     files.push_back(root);
 
     // Construct tree name from current datetime
@@ -173,7 +174,7 @@ std::shared_ptr<FileInfo> FileTree::FileTreeData::AddNode(file_type type, std::s
 		auto prev_version_tree = FileTree::GetHistoryTree(prev_version_tree_name);
 		std::shared_ptr<FileInfo> prev_version_parent;
 
-		if (parent->GetPrevVersionId() != -1) prev_version_parent = prev_version_tree->GetFileById(parent->GetPrevVersionId());
+		if (parent->GetPrevVersionId() != 0) prev_version_parent = prev_version_tree->GetFileById(parent->GetPrevVersionId());
 
 		if (prev_version_parent != nullptr) {
 			std::shared_ptr<FileInfo> prev_version_file = prev_version_parent->GetChild(name);
@@ -212,7 +213,7 @@ std::shared_ptr<FileInfo> FileTree::GetFileByPath(std::string const& path) {
 	return nullptr;
 }
 
-std::shared_ptr<FileInfo> FileTree::GetFileById(int file_id) {
+std::shared_ptr<FileInfo> FileTree::GetFileById(unsigned int file_id) {
 	if (file_id < 0 || file_id >= data->files.size())
         throw std::out_of_range("File index "+std::to_string(file_id)+" out of range (range "+std::to_string(data->files.size())+") in the tree "+data->tree_name);
 	return data->files[file_id];
@@ -297,7 +298,7 @@ void FileTree::ProcessFileContent(std::shared_ptr<FileInfo> file_node, std::istr
     }
 
     // If file has the same size and same hash as older file, there were only params updated
-    if (GetPrevVersion() != nullptr && file_node->GetPrevVersionId() != -1) {
+    if (GetPrevVersion() != nullptr && file_node->GetPrevVersionId() != 0) {
             auto prev_version_node = GetPrevVersion()->GetFileById(file_node->GetPrevVersionId());
             if (prev_version_node != nullptr
                 && file_node->GetParams().file_size == prev_version_node->GetParams().file_size
@@ -312,7 +313,7 @@ void FileTree::ProcessFileContent(std::shared_ptr<FileInfo> file_node, std::istr
     std::string chunk_name = GetTreeName() + "_" + std::to_string(file_node->GetId());
     FileChunk chunk(chunk_name);
 
-    std::string prev_chunk = (file_node->GetPrevVersionId() != -1 ? GetPrevVersion()->GetFileById(file_node->GetPrevVersionId())->GetChunkName() : "" );
+    std::string prev_chunk = (file_node->GetPrevVersionId() != 0 ? GetPrevVersion()->GetFileById(file_node->GetPrevVersionId())->GetChunkName() : "" );
     std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
     chunk.ProcessStringAndSave(prev_chunk, content);
 

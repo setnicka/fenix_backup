@@ -59,16 +59,16 @@ class FileInfo {
 	file_type GetType();
 	version_file_status GetVersionStatus();
 	file_params GetParams();
-	int GetId();
+	unsigned int GetId();
 	std::string GetPath();
-	int GetPrevVersionId();
+	unsigned int GetPrevVersionId();
 	const std::string& GetFileHash();
 	const std::string& GetChunkName();
 
 	void SetParams(file_params params);
 	void SetStatus(version_file_status status);
-	void SetId(int index);
-	void SetPrevVersionId(int index);
+	void SetId(unsigned int index);
+	void SetPrevVersionId(unsigned int index);
 	void SetFileHash(std::string file_hash);
 	void SetChunkName(std::string file_chunk_name);
 
