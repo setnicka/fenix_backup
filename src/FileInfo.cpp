@@ -116,10 +116,21 @@ void FileInfo::SetPrevVersionId(int index) { data->prev_version_file_index = ind
 void FileInfo::SetFileHash(std::string file_hash) { data->file_hash = file_hash; }
 void FileInfo::SetChunkName(std::string file_chunk_name) { data->file_chunk_name = file_chunk_name; }
 // Getters
+const std::string& FileInfo::GetName() { return data->name; }
 file_type FileInfo::GetType() { return data->type; }
 version_file_status FileInfo::GetVersionStatus() { return data->version_status; }
 file_params FileInfo::GetParams() { return data->params; }
 int FileInfo::GetId() { return data->file_index; }
+std::string FileInfo::GetPath() {
+    std::string path = data->name;
+    auto parent = GetParent();
+    while (parent != nullptr) {
+        path = parent->GetName() + "/" + path;
+        parent = parent->GetParent();
+    }
+    return path;
+}
+std::shared_ptr<FileInfo> FileInfo::GetParent() { return data->parent; }
 int FileInfo::GetPrevVersionId() { return data->prev_version_file_index; }
 const std::string& FileInfo::GetFileHash() { return data->file_hash; }
 const std::string& FileInfo::GetChunkName() { return data->file_chunk_name; }

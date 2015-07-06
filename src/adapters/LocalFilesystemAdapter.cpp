@@ -1,9 +1,11 @@
+#include <fstream>
+#include <sys/stat.h>
+#include <unordered_map>
+
 #include <boost/filesystem.hpp>
 
 #include "FenixExceptions.hpp"
 #include "adapters/LocalFilesystemAdapter.hpp"
-
-#include <sys/stat.h>
 
 namespace FenixBackup {
 
@@ -14,6 +16,8 @@ public:
 
     std::string path;
     std::shared_ptr<FileTree> tree;
+
+    std::unordered_map<std::shared_ptr<FileInfo>, boost::filesystem::path> path_cache;
 };
 
 void LocalFilesystemAdapter::LocalFilesystemAdapterData
@@ -32,7 +36,8 @@ void LocalFilesystemAdapter::LocalFilesystemAdapterData
         auto dir = tree->AddDirectory(parent, path.filename().string(), params);
         ScanFilesInDirectory(dir, path);
     } else if (boost::filesystem::is_regular_file(path)) {
-        tree->AddFile(parent, path.filename().string(), params);
+        auto file = tree->AddFile(parent, path.filename().string(), params);
+        path_cache.insert(std::make_pair(file, path));
     }
 }
 
@@ -65,11 +70,19 @@ std::shared_ptr<FileTree> LocalFilesystemAdapter::Scan() {
     auto path = boost::filesystem::path(data->path);
     data->ScanFilesInDirectory(data->tree->GetRoot(), path);
 
+    data->tree->SaveTree();
     return data->tree;
 }
 
 void LocalFilesystemAdapter::GetAndProcess(std::shared_ptr<FileInfo> file) {
+	std::string filename;
+	auto i = data->path_cache.find(file);
+	if (i == data->path_cache.end()) filename = data->path+file->GetPath();
+	else filename = (i->second).string();
 
+    std::ifstream is(filename);
+    if (!is.good()) throw AdapterException("Cannot read from file '"+filename+"'");
+    data->tree->ProcessFileContent(file, is);
 }
 
 }

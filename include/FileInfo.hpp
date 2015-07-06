@@ -55,10 +55,12 @@ class FileInfo {
 	/*FileInfo(const FileInfo& other);
 	FileInfo& operator=(const FileInfo& other);*/
 
+    const std::string& GetName();
 	file_type GetType();
 	version_file_status GetVersionStatus();
 	file_params GetParams();
 	int GetId();
+	std::string GetPath();
 	int GetPrevVersionId();
 	const std::string& GetFileHash();
 	const std::string& GetChunkName();
@@ -71,6 +73,7 @@ class FileInfo {
 	void SetChunkName(std::string file_chunk_name);
 
 	std::shared_ptr<FileInfo> GetPrevVersion();
+	std::shared_ptr<FileInfo> GetParent();
 
 	void AddChild(std::string const& name, std::shared_ptr<FileInfo> child);
 	std::shared_ptr<FileInfo> GetChild(std::string const& name);

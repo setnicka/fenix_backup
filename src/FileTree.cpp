@@ -32,7 +32,10 @@ class FileTree::FileTreeData {
 	std::vector<std::shared_ptr<FileInfo>> files;
 	std::unordered_map<std::string, std::shared_ptr<FileInfo>> file_hashes;
 
+    std::vector<std::pair<std::shared_ptr<FileInfo>, int>> files_to_process;
+
 	std::shared_ptr<FileInfo> AddNode(file_type type, std::shared_ptr<FileInfo> parent, std::string const& name, file_params params);
+	void CountScore(std::shared_ptr<FileInfo> file);
 
     template <class Archive>
     void serialize(Archive & ar, std::uint32_t const version) {
@@ -76,6 +79,13 @@ FileTree::FileTreeData::FileTreeData(bool initialize) {
     }
 }
 
+void FileTree::FileTreeData::CountScore(std::shared_ptr<FileInfo> file) {
+    // TODO: Counting score according to Config
+    int score = 1;
+    files_to_process.push_back(std::make_pair(file, score));
+}
+
+////////////////////////////////////////////////////////////////////////////////
 
 FileTree::FileTree(): data{new FileTreeData(true)} {}
 
@@ -191,8 +201,8 @@ std::shared_ptr<FileInfo> FileTree::FileTreeData::AddNode(file_type type, std::s
 	if (type == DIR && status == UNKNOWN) status = NEW; // When DIR, there are no data to save -> we have done all work for this file
 	file->SetStatus(status);
 
-	// TODO: Count score and add file to score-heap
-	// if (type == FILE)
+	// Count score and add file to score-heap
+	if (type == FILE && status != UNCHANGED && status != UPDATED_PARAMS) CountScore(file);
 
 	return file;
 }
@@ -202,8 +212,9 @@ std::shared_ptr<FileInfo> FileTree::GetFileByPath(std::string const& path) {
 	return nullptr;
 }
 
-std::shared_ptr<FileInfo> FileTree::GetFileById(unsigned int file_id) {
-	if (file_id < 0 || file_id >= data->files.size()) throw std::out_of_range("File index out of range");
+std::shared_ptr<FileInfo> FileTree::GetFileById(int file_id) {
+	if (file_id < 0 || file_id >= data->files.size())
+        throw std::out_of_range("File index "+std::to_string(file_id)+" out of range (range "+std::to_string(data->files.size())+") in the tree "+data->tree_name);
 	return data->files[file_id];
 }
 
@@ -217,9 +228,14 @@ std::shared_ptr<FileInfo> FileTree::GetFileByHash(std::string const& file_hash) 
 std::vector<std::shared_ptr<FileInfo>> FileTree::FinishTree() {
     SaveTree();
 
-    // TODO
-	std::vector<std::shared_ptr<FileInfo>> t;
-	return t;
+    sort(data->files_to_process.begin(), data->files_to_process.end(),
+        [](const std::pair<std::shared_ptr<FileInfo>, int> & a, const std::pair<std::shared_ptr<FileInfo>, int> & b) -> bool
+        { return a.second > b.second; }
+    );
+
+	std::vector<std::shared_ptr<FileInfo>> out;
+	for (auto& item: data->files_to_process) out.push_back(item.first);
+	return out;
 }
 
 const std::string& FileTree::GetTreeName() { return data->tree_name; }
@@ -258,7 +274,8 @@ std::ostream& FileTree::GetFileContent(std::shared_ptr<FileInfo> file_node, std:
 }
 
 void FileTree::ProcessFileContent(std::shared_ptr<FileInfo> file_node, std::istream& file) {
-    if (file_node != GetFileById(file_node->GetId())) throw FileTreeException("Cannot call ProcessFileContent with FileInfo from different FileTree\n");
+    if (file_node->GetId() >= data->files.size() || file_node != GetFileById(file_node->GetId()))
+        throw FileTreeException("Cannot call ProcessFileContent with FileInfo from different FileTree\n");
     if (file_node->GetType() == DIR) throw FileTreeException("Cannot process content for directory\n");
 
     // 1. Count SHA256 hash of the given file
@@ -280,8 +297,8 @@ void FileTree::ProcessFileContent(std::shared_ptr<FileInfo> file_node, std::istr
     }
 
     // If file has the same size and same hash as older file, there were only params updated
-    if (GetPrevVersion() != nullptr) {
-            auto prev_version_node = GetPrevVersion()->GetFileById(file_node->GetId());
+    if (GetPrevVersion() != nullptr && file_node->GetPrevVersionId() != -1) {
+            auto prev_version_node = GetPrevVersion()->GetFileById(file_node->GetPrevVersionId());
             if (prev_version_node != nullptr
                 && file_node->GetParams().file_size == prev_version_node->GetParams().file_size
                 && file_node->GetFileHash() == prev_version_node->GetFileHash()
@@ -304,7 +321,9 @@ void FileTree::ProcessFileContent(std::shared_ptr<FileInfo> file_node, std::istr
     file_node->SetChunkName(chunk_name);
     file_node->SetStatus(UPDATED_FILE);
     data->file_hashes.insert(std::make_pair(file_hash, file_node));
-    SaveTree();
+
+    // Save tree or not?
+    //SaveTree();
 }
 
 }
