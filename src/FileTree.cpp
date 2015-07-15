@@ -161,6 +161,10 @@ std::shared_ptr<FileInfo> FileTree::AddFile(std::shared_ptr<FileInfo> parent, st
 std::shared_ptr<FileInfo> FileTree::FileTreeData::AddNode(file_type type, std::shared_ptr<FileInfo> parent, std::string const& name, file_params params) {
 	if (parent->GetType() != DIR) throw std::invalid_argument("Parent must be dir");
 
+    // Test if we want to backup this file
+    Config::Rules rules = Config::GetRules(parent->GetPath() + "/" + name);
+    if (!rules.backup) return nullptr;
+
 	auto file = std::make_shared<FileInfo>(type, parent, name);
 	file->SetParams(params);
 	parent->AddChild(name, file);

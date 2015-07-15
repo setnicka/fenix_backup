@@ -60,7 +60,7 @@ class FileInfo {
 	version_file_status GetVersionStatus();
 	file_params GetParams();
 	unsigned int GetId();
-	std::string GetPath();
+	const std::string& GetPath();
 	unsigned int GetPrevVersionId();
 	const std::string& GetFileHash();
 	const std::string& GetChunkName();

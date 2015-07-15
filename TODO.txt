@@ -1,10 +1,10 @@
 Nastavení:
  O Parsovátko nastavení z JSONu
- * Vymyslet základní strukturu nastavení + parametry
+ o Vymyslet základní strukturu nastavení + parametry
 
 Přidávání souborů:
  * Metoda pro výpočet skóre - podle hodnot z nastavení, vrací int (záporné = nechceme)
- * Struktura pro držení souborů podle skóre - výpočet skóre při vkládání souboru
+ O Struktura pro držení souborů podle skóre - výpočet skóre při vkládání souboru
 
 Ukládání a načítání stromečků
  O Načítání seznamu starších stromečků + konstrukce jména nového
@@ -21,7 +21,7 @@ Datové chunky:
 Adaptéry:
  O Adaptérová baseclass
  O Adaptér lokálního filesystému
- * Adptér umí dodávat soubory
+ O Adptér umí dodávat soubory
 
 -----
 

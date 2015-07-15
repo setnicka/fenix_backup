@@ -5,7 +5,7 @@
 
 namespace FenixBackup {
 
-class LocalFilesystemAdapter: public Adapter {;
+class LocalFilesystemAdapter: public Adapter {
   public:
     LocalFilesystemAdapter();
     virtual ~LocalFilesystemAdapter();

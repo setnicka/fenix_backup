@@ -18,12 +18,17 @@ int main() {
 	//storage->Test();
 
 	try {
-		FenixBackup::Config::Load("/home/jirka/bc_FenixBackup/test/config");
+		FenixBackup::Config::Load("test_backup/config");
 		// FenixBackup::FileTree::GetHistoryTreeList();
 
         // 1. Get adapter and run it -> non-saved FileTree
-        auto adapter = new FenixBackup::LocalFilesystemAdapter();
-        adapter->SetPath("/home/jirka/bc_FenixBackup/");
+
+        FenixBackup::LocalFilesystemAdapter* adapter;
+        if (FenixBackup::Config::GetConfig().adapter == "local_filesystem") {
+            adapter = new FenixBackup::LocalFilesystemAdapter();
+            adapter->SetPath("./");
+        }
+        // adapter->SetPath("/home/jirka/bc_FenixBackup/");
         auto tree = adapter->Scan();
 
         // 2. Get files list
@@ -31,6 +36,7 @@ int main() {
 
         // 3. Foreach file in the file list, get file content and process it
         for (auto& file: files) adapter->GetAndProcess(file);
+        tree->SaveTree();
 
 
         //FenixBackup::file_params params = {};

@@ -41,6 +41,9 @@ class FileInfo::FileInfoData {
 	std::string file_hash;
 	std::string file_chunk_name;
 
+    // Cache (not serialize)
+    std::string path;
+
 	FileInfoData(file_type type, std::shared_ptr<FileInfo> parent, std::string const& name):
 		type{type}, parent{parent}, name{name} {}
 
@@ -121,14 +124,12 @@ file_type FileInfo::GetType() { return data->type; }
 version_file_status FileInfo::GetVersionStatus() { return data->version_status; }
 file_params FileInfo::GetParams() { return data->params; }
 unsigned int FileInfo::GetId() { return data->file_index; }
-std::string FileInfo::GetPath() {
-    std::string path = data->name;
-    auto parent = GetParent();
-    while (parent != nullptr) {
-        path = parent->GetName() + "/" + path;
-        parent = parent->GetParent();
+const std::string& FileInfo::GetPath() {
+    if (data->path.empty()) {
+        auto parent = GetParent();
+        if (parent != nullptr) data->path = parent->GetPath() + "/" + GetName();
     }
-    return path;
+    return data->path;
 }
 std::shared_ptr<FileInfo> FileInfo::GetParent() { return data->parent; }
 unsigned int FileInfo::GetPrevVersionId() { return data->prev_version_file_index; }

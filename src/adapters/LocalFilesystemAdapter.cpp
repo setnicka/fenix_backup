@@ -34,10 +34,10 @@ void LocalFilesystemAdapter::LocalFilesystemAdapterData
 
     if (boost::filesystem::is_directory(path)) {
         auto dir = tree->AddDirectory(parent, path.filename().string(), params);
-        ScanFilesInDirectory(dir, path);
+        if (dir != nullptr) ScanFilesInDirectory(dir, path);
     } else if (boost::filesystem::is_regular_file(path)) {
         auto file = tree->AddFile(parent, path.filename().string(), params);
-        path_cache.insert(std::make_pair(file, path));
+        if (file != nullptr) path_cache.insert(std::make_pair(file, path));
     }
 }
 
