@@ -1,0 +1,34 @@
+baseDir="./test_backup"
+
+adapter="local_filesystem"
+adapter_params: {
+  path="/home/jirka/bc_FenixBackup"
+}
+
+rules: (
+  { path: "/"
+    backup: true
+    files: (
+      { regex: "\.exe"
+        inherit: true
+        backup: false
+      }
+    )
+  },
+  { path: "/test_backup/"
+    files: (
+      { regex: "\.fenixtree"
+        inherit: true
+        backup: true
+      },
+      { regex: "\.data"
+        inherit: true
+        backup: false
+      },
+      { regex: "\.meta"
+        inherit: true
+        backup: false
+      }
+    )
+  }
+)
