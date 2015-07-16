@@ -1,3 +1,4 @@
+#include <vector>
 #include <fstream>
 #include <ctime>
 #include <boost/filesystem.hpp>
@@ -39,7 +40,7 @@ class FileTree::FileTreeData {
 
     template <class Archive>
     void serialize(Archive & ar, std::uint32_t const version) {
-        if (version <= 1) ar(
+        if (version == 1) ar(
             cereal::make_nvp("tree_name", tree_name),
             cereal::make_nvp("prev_version_tree_name", prev_version_tree_name),
             cereal::make_nvp("prev_version_hash", prev_version_hash),

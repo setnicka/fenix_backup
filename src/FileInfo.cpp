@@ -51,7 +51,7 @@ class FileInfo::FileInfoData {
 
     template <class Archive>
     void serialize(Archive & ar, std::uint32_t const version) {
-        if (version <= 1) ar(
+        if (version == 1) ar(
             cereal::make_nvp("name", name),
             cereal::make_nvp("type", type),
             cereal::make_nvp("version_status", version_status),

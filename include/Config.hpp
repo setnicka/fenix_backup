@@ -37,7 +37,7 @@ class Config {
     struct Rules {
         bool inherit = false;  // Used for regex matching inheritance:
             // false: match only files in this directory
-            // true: if match, use this Rules even to some files in subdirs (and not use subdir Rules for them)
+            // true: if match, use this Rules even to some files in subdirs (and not use subdir Rules for them except backup=none fro dir)
         bool backup = true;
         int priority = 0;
         int history = 10;

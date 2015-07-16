@@ -76,9 +76,9 @@ const Config::Rules& Config::Dir::GetRules(const std::string& path) {
         // Try to match all file rules
         for (auto& f: files) {
             if (pos == std::string::npos) {  // no subdir path
-                if (regex_match(path, std::regex("^"+f.first+"$"))) return f.second;
+                if (regex_search(path, std::regex("^"+f.first+"$"))) return f.second;
             } else if (f.second.inherit) {  // subdir path -> only rules with inheritance
-                if (regex_match(path, std::regex(f.first+"$"))) return f.second;
+                if (regex_search(path, std::regex(f.first+"$"))) return f.second;
             }
         }
     }
