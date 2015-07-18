@@ -14,24 +14,43 @@ std::shared_ptr<Config::Dir> Config::root_rules = nullptr;
 
 class Config::Dir {
   public:
-    void SetRules(Rules rules);
-    void SetRules(std::string regex_expression, Rules rules);
-    const Rules& GetRules(const std::string& path);
+    struct RulesInternal{
+        bool backup; bool backup_set = false;
+        int priority; bool priority_set = false;
+        int history; bool history_set = false;
+    };
+
+    struct RulesFilter {
+        std::string regex = "";
+        std::string path_regex = "";
+        size_t size_at_least = 0;
+        size_t size_at_most = 0;
+    };
+
+    void SetRules(RulesInternal rules);
+    void AddRules(RulesFilter filter, RulesInternal rules);
+    void Apply(const std::string& path, const file_params& params, Rules& rules);
 
     /// Return whole path with multiple subdirs (and create them, if they doesnt exists)
     static std::shared_ptr<Dir> GetDirByPath(const std::string& path, bool create = false);
+
+    static void ParseRules(const libconfig::Setting& source, RulesInternal& target);
+    static void ParseRulesFilter(const libconfig::Setting& source, RulesFilter& target);
+
+    static void ApplyRules(const RulesInternal& internal, Rules& rules);
+    static bool RulesFilterTest(const RulesFilter& filter, const std::string& path, const file_params& params);
 
   private:
     /// Return subdir (and create it, if it doesnt exists)
     std::shared_ptr<Dir> GetSubdir(const std::string& subdir, bool create = false);
 
     std::unordered_map<std::string, std::shared_ptr<Dir>> subdirs;
-    Rules rules;
-    std::unordered_map<std::string, Rules> files;
+    RulesInternal dir_rules;
+    std::vector<std::pair<RulesFilter,RulesInternal>> file_rules;
 };
 
-void Config::Dir::SetRules(Config::Rules rules) { this->rules = rules; }
-void Config::Dir::SetRules(std::string regex_expression, Config::Rules rules) { this->files[regex_expression] = rules; }
+void Config::Dir::SetRules(Config::Dir::RulesInternal rules) { this->dir_rules = rules; }
+void Config::Dir::AddRules(Config::Dir::RulesFilter filter, Config::Dir::RulesInternal rules) { file_rules.push_back(std::make_pair(filter, rules)); }
 
 std::shared_ptr<Config::Dir> Config::Dir::GetDirByPath(const std::string& path, bool create) {
     // 1. Normalize path
@@ -67,28 +86,67 @@ std::shared_ptr<Config::Dir> Config::Dir::GetSubdir(const std::string& subdir, b
     } else return nullptr;
 }
 
-const Config::Rules& Config::Dir::GetRules(const std::string& path) {
-    // Is this subdir path?
-    auto pos = path.find('/');
+void Config::Dir::ParseRules(const libconfig::Setting& source, Config::Dir::RulesInternal& target) {
+    if (source.lookupValue("backup", target.backup)) target.backup_set = true;
+    if (source.lookupValue("priority", target.priority)) target.priority_set = true;
+    if (source.lookupValue("history", target.history)) target.history_set = true;
+}
 
-    // 1: Try to match file rules in this Dir
+void Config::Dir::ParseRulesFilter(const libconfig::Setting& source, Config::Dir::RulesFilter& target) {
+    source.lookupValue("regex", target.regex);
+    source.lookupValue("path_regex", target.path_regex);
+    source.lookupValue("size_at_least", (unsigned int&)target.size_at_least);
+    source.lookupValue("size_at_most", (unsigned int&)target.size_at_most);
+}
+
+void Config::Dir::ApplyRules(const Config::Dir::RulesInternal& internal, Config::Rules& rules) {
+    if (internal.backup_set) rules.backup = internal.backup;
+    if (internal.priority_set) rules.priority = internal.priority;
+    if (internal.history_set) rules.history = internal.history;
+}
+
+bool Config::Dir::RulesFilterTest(const Config::Dir::RulesFilter& filter, const std::string& path, const file_params& params) {
+    // 1. Regex tests for filename and path (dirname)
+    if (!filter.regex.empty() || !filter.path_regex.empty()) {
+        auto pos = path.rfind('/');
+        std::string dirname;
+        std::string filename;
+        if (pos == std::string::npos) filename = path;
+        else {
+            dirname = path.substr(0, pos);
+            filename = path.substr(pos + 1);
+        }
+        // Tests:
+        if (!filter.regex.empty() && !regex_match(path, std::regex(filename))) return false;
+        if (!filter.path_regex.empty() && !regex_match(path, std::regex(dirname))) return false;
+    }
+
+    // 2. Filesize tests
+    if (filter.size_at_least != 0 && params.file_size < filter.size_at_least) return false;
+    if (filter.size_at_most != 0 && params.file_size > filter.size_at_most) return false;
+
+    // Final - all test passed, return true
+    return true;
+}
+
+void Config::Dir::Apply(const std::string& path, const file_params& params, Config::Rules& rules) {
+    // 1. Apply my rules, if there is any
+    ApplyRules(dir_rules, rules);
+
+    // 2. Try each file_rule if it matches
     if (!path.empty()) {
         // Try to match all file rules
-        for (auto& f: files) {
-            if (pos == std::string::npos) {  // no subdir path
-                if (regex_search(path, std::regex("^"+f.first+"$"))) return f.second;
-            } else if (f.second.inherit) {  // subdir path -> only rules with inheritance
-                if (regex_search(path, std::regex(f.first+"$"))) return f.second;
-            }
+        for (auto& f: file_rules) {
+            if (RulesFilterTest(f.first, path, params)) ApplyRules(f.second, rules);
         }
     }
 
-    // 2: If it is subdir path, ask subdir
-    auto subdir = GetSubdir(path.substr(0, pos));
-    if (subdir) return subdir->GetRules(path.substr(pos+1));
-
-    // 4: Else return default rules for this directory
-    return rules;
+    // 3: If it is subdir path, ask subdir
+    auto pos = path.find('/');
+    if (pos != std::string::npos) {
+        auto subdir = GetSubdir(path.substr(0, pos));
+        if (subdir) return subdir->Apply(path.substr(pos+1), params, rules);
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -123,16 +181,15 @@ void Config::Load(std::string filename) {
     root_rules = std::make_shared<Dir>();
 
     // 4. Rules for directories
-    if (config_file.exists("rules") && config_file.lookup("rules").isList()) {
-        auto& all_rules = config_file.lookup("rules");
+    if (config_file.exists("paths") && config_file.lookup("paths").isList()) {
+        auto& all_rules = config_file.lookup("paths");
         for (int i = 0; i < all_rules.getLength(); i++) {
             auto& rules = all_rules[i];
-            if (!rules.exists("path")) throw ConfigException("No path for the rules index "+std::to_string(i)+"\n");
+            if (!rules.exists("path")) throw ConfigException("No path for the paths index "+std::to_string(i)+"\n");
             std::string path = rules["path"];
-            Rules parsed_rules;
-            rules.lookupValue("backup", parsed_rules.backup);
-            rules.lookupValue("priority", parsed_rules.priority);
-            rules.lookupValue("history", parsed_rules.history);
+
+            Dir::RulesInternal parsed_rules;
+            Dir::ParseRules(rules, parsed_rules);
 
             // Save rules to given path
             if (!path.empty() && path[0] == '/') path = path.substr(1);
@@ -142,17 +199,14 @@ void Config::Load(std::string filename) {
             // File rules
             if (rules.exists("files")) {
                 for (int j = 0; j < rules["files"].getLength(); j++) {
-                    auto& file = rules["files"][j];
-                    Rules parsed_file_rules;
 
-                    if (!file.exists("regex")) throw ConfigException("No regex for the regex rules index "+std::to_string(i)+" (path '"+path+"')\n");
+                    auto& file_rules = rules["files"][j];
+                    Dir::RulesInternal parsed_file_rules;
+                    Dir::ParseRules(file_rules, parsed_file_rules);
+                    Dir::RulesFilter parsed_filter;
+                    Dir::ParseRulesFilter(file_rules, parsed_filter);
 
-                    file.lookupValue("inherit", parsed_file_rules.inherit);
-                    file.lookupValue("backup", parsed_file_rules.backup);
-                    file.lookupValue("priority", parsed_file_rules.priority);
-                    file.lookupValue("history", parsed_file_rules.history);
-
-                    dir->SetRules(file["regex"], parsed_file_rules);
+                    dir->AddRules(parsed_filter, parsed_file_rules);
                 }
             }
         }
@@ -161,10 +215,17 @@ void Config::Load(std::string filename) {
     loaded = true;
 }
 
-const Config::Rules& Config::GetRules(const std::string& path) {
+const Config::Rules Config::GetRules(const std::string& path, const file_params& params) {
+    Rules rules;
+
+    // Let all dirs on the path modify the rules
+    // Start asking the root dir
+
     // If starting with '/' remove it before asking root_rules
-    if (!path.empty() && path[0] == '/') return root_rules->GetRules(path.substr(1));
-    else return root_rules->GetRules(path);
+    if (!path.empty() && path[0] == '/') root_rules->Apply(path.substr(1), params, rules);
+    else root_rules->Apply(path, params, rules);
+
+    return rules;
 }
 
 const ConfigData& Config::GetConfig() {

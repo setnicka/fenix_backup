@@ -145,7 +145,7 @@ std::shared_ptr<FileTree> FileTree::GetHistoryTree(std::string name) {
 	return history_trees[name];
 }
 
-std::shared_ptr<FileTree> FileTree::GetNewTree() {
+std::shared_ptr<FileTree> FileTree::CreateNewTree() {
     auto tree = std::make_shared<FileTree>();
     history_trees.insert(std::make_pair(tree->GetTreeName(), tree));
     return tree;
@@ -163,7 +163,7 @@ std::shared_ptr<FileInfo> FileTree::FileTreeData::AddNode(file_type type, std::s
 	if (parent->GetType() != DIR) throw std::invalid_argument("Parent must be dir");
 
     // Test if we want to backup this file
-    Config::Rules rules = Config::GetRules(parent->GetPath() + "/" + name);
+    Config::Rules rules = Config::GetRules(parent->GetPath() + "/" + name, params);
     if (!rules.backup) return nullptr;
 
 	auto file = std::make_shared<FileInfo>(type, parent, name);

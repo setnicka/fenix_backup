@@ -27,7 +27,7 @@ struct file_params {
 	mode_t	permissions;		// protection
 	uid_t	uid;				// user ID of owner
 	gid_t	gid;				// group ID of owner
-	off_t	file_size;			// total size, in bytes
+	size_t	file_size;			// total size, in bytes
 	// time_t	access_time;		// time of last access
 	time_t	modification_time;	// time of last modification
 	// TODO: ACL

@@ -64,7 +64,7 @@ LocalFilesystemAdapter::~LocalFilesystemAdapter() {}
 void LocalFilesystemAdapter::SetPath(std::string path) { data->path = path; }
 
 std::shared_ptr<FileTree> LocalFilesystemAdapter::Scan() {
-    data->tree = FileTree::GetNewTree();
+    data->tree = FileTree::CreateNewTree();
 
     // Scan all files in given path in filesystem and save them into tree
     auto path = boost::filesystem::path(data->path);

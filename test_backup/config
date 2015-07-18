@@ -5,29 +5,26 @@ adapter_params: {
   path="/home/jirka/bc_FenixBackup"
 }
 
-rules: (
+paths: (
   { path: "/"
     backup: true
-    files: (
-      { regex: "\.exe"
+    file_rules: (
+      { regex: ".*\.exe"
         inherit: true
         backup: false
       }
     )
   },
   { path: "/test_backup/"
-    files: (
-      { regex: "\.fenixtree"
-        inherit: true
+    file_rules: (
+      {
+        backup: false
+      },
+      { regex: ".*\.fenixtree"
+        path_regex: ""
+        size_at_least: 10
+        size_at_most: 1024
         backup: true
-      },
-      { regex: "\.data"
-        inherit: true
-        backup: false
-      },
-      { regex: "\.meta"
-        inherit: true
-        backup: false
       }
     )
   }

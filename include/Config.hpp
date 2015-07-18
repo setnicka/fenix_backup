@@ -4,6 +4,8 @@
 #include <memory>
 #include <unordered_map>
 
+#include <FileInfo.hpp>
+
 namespace FenixBackup {
 
 struct ConfigData {
@@ -35,18 +37,15 @@ class Config {
 	static const std::string GetChunkFilename(const std::string& name, bool is_data = false);
 
     struct Rules {
-        bool inherit = false;  // Used for regex matching inheritance:
-            // false: match only files in this directory
-            // true: if match, use this Rules even to some files in subdirs (and not use subdir Rules for them except backup=none fro dir)
         bool backup = true;
         int priority = 0;
         int history = 10;
     };
 
-    static const Rules& GetRules(const std::string& path);
+    static const Rules GetRules(const std::string& path, const file_params& params);
 
-    class Dir;
   private:
+    class Dir;
     static std::shared_ptr<Dir> root_rules;
 
     static struct ConfigData data;

@@ -40,7 +40,7 @@ class FileTree {
     // Static functions
     static const std::vector<std::string>& GetHistoryTreeList();
     static const std::string GetNewestTreeName();
-	static std::shared_ptr<FileTree> GetNewTree();
+	static std::shared_ptr<FileTree> CreateNewTree();
 	static std::shared_ptr<FileTree> GetHistoryTree(std::string name);
 
     class FileTreeData;
