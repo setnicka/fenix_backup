@@ -61,15 +61,18 @@ class FileTree::FileTreeData {
         else throw FileTreeException("Unknown version "+std::to_string(version)+" of FileTree serialized data\n");
 
         // Construct arrays files and file_hashes
+        files.push_back(nullptr);
+        files.push_back(root);
         load_arrays(root);
     }
 
     void load_arrays(std::shared_ptr<FileInfo> node) {
+        if(node->GetId() >= files.size()) files.resize(node->GetId() + 1);
+        files[node->GetId()] = node;
+
         if (node->GetType() == DIR) {
             for(auto file: node->GetChilds()) load_arrays(file.second);
         } else {
-            if(node->GetId() >= files.size()) files.resize(node->GetId() + 1);
-            files.at(node->GetId()) = node;
             file_hashes.insert(std::make_pair(node->GetFileHash(), node));
         }
     }
