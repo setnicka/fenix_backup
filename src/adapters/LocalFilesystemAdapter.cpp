@@ -25,7 +25,10 @@ void LocalFilesystemAdapter::LocalFilesystemAdapterData
     file_params params;
 
     struct stat info;
-    stat(path.c_str(), &info);
+    lstat(path.c_str(), &info);
+
+    params.device = info.st_dev;
+    params.inode = info.st_ino;
     params.permissions = info.st_mode;
     params.uid = info.st_uid;
     params.gid = info.st_gid;
@@ -80,7 +83,8 @@ void LocalFilesystemAdapter::GetAndProcess(std::shared_ptr<FileInfo> file) {
 	if (i == data->path_cache.end()) filename = data->path+file->GetPath();
 	else filename = (i->second).string();
 
-    std::ifstream is(filename);
+    std::ifstream is(filename, std::ifstream::in | std::ifstream::binary);
+
     if (!is.good()) throw AdapterException("Cannot read from file '"+filename+"'");
     data->tree->ProcessFileContent(file, is);
 }

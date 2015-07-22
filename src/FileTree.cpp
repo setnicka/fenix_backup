@@ -190,7 +190,7 @@ std::shared_ptr<FileInfo> FileTree::FileTreeData::AddNode(file_type type, std::s
 
     // Test if we want to backup this file
     auto rules = Config::GetRules(parent->GetPath() + "/" + name, params);
-    if (!rules.backup) return nullptr;
+    if ((type == DIR && !rules.scan) || (type == FILE && !rules.backup) ) return nullptr;
 
 	auto file = std::make_shared<FileInfo>(type, parent, name);
 	file->SetParams(params);

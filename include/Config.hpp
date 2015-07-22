@@ -37,6 +37,7 @@ class Config {
 	static const std::string GetChunkFilename(const std::string& name, bool is_data = false);
 
     struct Rules {
+        bool scan = true;
         bool backup = true;
         int priority = 0;
         int history = 10;

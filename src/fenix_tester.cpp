@@ -35,7 +35,10 @@ int main() {
         auto files = tree->FinishTree();
 
         // 3. Foreach file in the file list, get file content and process it
-        for (auto& file: files) adapter->GetAndProcess(file);
+        for (auto& file: files) {
+                std::cout << "Processing file " << file->GetPath() << std::endl;
+                adapter->GetAndProcess(file);
+        }
         tree->SaveTree();
 
 
