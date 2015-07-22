@@ -4,7 +4,7 @@
 #include <memory>
 #include <unordered_map>
 
-#include <FileInfo.hpp>
+#include "Global.hpp"
 
 namespace FenixBackup {
 
