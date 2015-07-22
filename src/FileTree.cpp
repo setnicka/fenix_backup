@@ -30,6 +30,7 @@ class FileTree::FileTreeData {
 	std::string prev_version_tree_name;
 	std::string prev_version_hash;
 
+    // Cache - not serialized
 	std::vector<std::shared_ptr<FileInfo>> files;
 	std::unordered_map<std::string, std::shared_ptr<FileInfo>> file_hashes;
 
@@ -39,16 +40,38 @@ class FileTree::FileTreeData {
 	void CountScore(std::shared_ptr<FileInfo> file);
 
     template <class Archive>
-    void serialize(Archive & ar, std::uint32_t const version) {
+    void save(Archive & ar, std::uint32_t const version) const {
         if (version == 1) ar(
             cereal::make_nvp("tree_name", tree_name),
             cereal::make_nvp("prev_version_tree_name", prev_version_tree_name),
             cereal::make_nvp("prev_version_hash", prev_version_hash),
-            cereal::make_nvp("root", root),
-            cereal::make_nvp("filesById", files),
-            cereal::make_nvp("filesByHash", file_hashes)
+            cereal::make_nvp("root", root)
         );
         else throw FileTreeException("Unknown version "+std::to_string(version)+" of FileTree serialized data\n");
+    }
+
+    template <class Archive>
+    void load(Archive & ar, std::uint32_t const version) {
+        if (version == 1) ar(
+            cereal::make_nvp("tree_name", tree_name),
+            cereal::make_nvp("prev_version_tree_name", prev_version_tree_name),
+            cereal::make_nvp("prev_version_hash", prev_version_hash),
+            cereal::make_nvp("root", root)
+        );
+        else throw FileTreeException("Unknown version "+std::to_string(version)+" of FileTree serialized data\n");
+
+        // Construct arrays files and file_hashes
+        load_arrays(root);
+    }
+
+    void load_arrays(std::shared_ptr<FileInfo> node) {
+        if (node->GetType() == DIR) {
+            for(auto file: node->GetChilds()) load_arrays(file.second);
+        } else {
+            if(node->GetId() >= files.size()) files.resize(node->GetId() + 1);
+            files.at(node->GetId()) = node;
+            file_hashes.insert(std::make_pair(node->GetFileHash(), node));
+        }
     }
 };
 
@@ -163,7 +186,7 @@ std::shared_ptr<FileInfo> FileTree::FileTreeData::AddNode(file_type type, std::s
 	if (parent->GetType() != DIR) throw std::invalid_argument("Parent must be dir");
 
     // Test if we want to backup this file
-    Config::Rules rules = Config::GetRules(parent->GetPath() + "/" + name, params);
+    auto rules = Config::GetRules(parent->GetPath() + "/" + name, params);
     if (!rules.backup) return nullptr;
 
 	auto file = std::make_shared<FileInfo>(type, parent, name);

@@ -77,6 +77,7 @@ class FileInfo {
 
 	void AddChild(std::string const& name, std::shared_ptr<FileInfo> child);
 	std::shared_ptr<FileInfo> GetChild(std::string const& name);
+	const std::unordered_map<std::string, std::shared_ptr<FileInfo>>& GetChilds();
 
     class FileInfoData;
   private:

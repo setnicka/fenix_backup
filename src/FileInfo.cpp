@@ -59,9 +59,9 @@ class FileInfo::FileInfoData {
             cereal::make_nvp("file_index", file_index),
             cereal::make_nvp("prev_version_file_index", prev_version_file_index),
             cereal::make_nvp("parent", parent),
-            cereal::make_nvp("files", files),
             cereal::make_nvp("file_hash", file_hash),
-            cereal::make_nvp("file_chunk_name", file_chunk_name)
+            cereal::make_nvp("file_chunk_name", file_chunk_name),
+            cereal::make_nvp("files", files)
         );
         else throw FileInfoException("Unknown version "+std::to_string(version)+" of FileInfo serialized data\n");
     }
@@ -110,6 +110,8 @@ std::shared_ptr<FileInfo> FileInfo::GetChild(std::string const& name) {
 	if (i == data->files.end()) return nullptr;
 	else return i->second;
 }
+
+const std::unordered_map<std::string, std::shared_ptr<FileInfo>>& FileInfo::GetChilds() { return data->files; }
 
 // Setters
 void FileInfo::SetParams(file_params params) { data->params = params; }
