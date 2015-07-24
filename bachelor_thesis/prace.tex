@@ -26,12 +26,19 @@
 % \let\openright=\cleardoublepage
 
 %% Pokud používáte csLaTeX (doporučeno):
-\usepackage{czech}
+%\usepackage{czech}
+\usepackage[czech]{babel}
+
 %% Použité kódování znaků: obvykle latin2, cp1250 nebo utf8:
 \usepackage[utf8]{inputenc}
 %% Ostatní balíčky
 \usepackage{graphicx}
 \usepackage{amsthm}
+\usepackage[footnote,acronym,nomain]{glossaries}
+%\setglossarystyle{altlist}
+\setglossarystyle{list}
+
+\makeglossaries
 
 %% Balíček hyperref, kterým jdou vyrábět klikací odkazy v PDF,
 %% ale hlavně ho používáme k uložení metadat do PDF (včetně obsahu).
@@ -187,7 +194,7 @@ Mgr. Martin Mareš, Ph.D., Katedra aplikované matematiky
 Abstrakt: TODO
 % abstrakt v rozsahu 80-200 slov; nejedná se však o opis zadání bakalářské práce
 
-Klíčová slova: TODO
+Klíčová slova: zálohování
 % 3 až 5 klíčových slov
 
 \vss}\nobreak\vbox to 0.49\vsize{
@@ -246,7 +253,9 @@ Keywords: TODO
 \chapwithtoc{Seznam tabulek}
 
 %%% Použité zkratky v bakalářské práci, existují-li, včetně jejich vysvětlení.
-\chapwithtoc{Seznam použitých zkratek}
+% \chapwithtoc{Seznam použitých zkratek}
+\advance\glsdescwidth by 2cm
+\printglossary[type=\acronymtype,title={Seznam použitých zkratek}]
 
 %%% Přílohy k bakalářské práci, existují-li (různé dodatky jako výpisy programů,
 %%% diagramy apod.). Každá příloha musí být alespoň jednou odkazována z vlastního
