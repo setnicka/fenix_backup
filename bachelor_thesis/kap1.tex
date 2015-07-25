@@ -1,6 +1,117 @@
-\chapter{Název první kapitoly}
+\chapter{Existující metody a systémy zálohování}
 
-\section{Název první podkapitoly v první kapitole}
+Jak již bylo popsáno v úvodu práce, dá se k zálohování přistupovat mnoha způsoby.
+Pojďme si zkusit tyto způsoby rozebrat, podívat se na ně z několika hledisek
+efektivity a zhodnotit jejich klady a zápory. Dále se zkusme podívat na
+několik existujících zálohovacích řešení.
 
-\section{Název druhé podkapitoly v první kapitole}
+\section{Základní kopírování}
 
+Při zálohování vždy jde o to držet si nějakým způsobem kopii nějakých dat. Výběr
+dat k zálohování nyní odložíme stranou a budeme si představovat, že máme nějakou
+dobře definovanou množinu souborů, které chceme zálohovat.
+
+\newacronym{FTP}{FTP}{File Transfer Protocol -- jednoduchý síťový protokol pro
+přenos souborů}
+\newacronym{SSH}{SSH}{Secure shell -- zabezpečený komunikační síťový protokol}
+\newacronym{SCP}{SCP}{Secure copy -- zabezpečený protokol pro přenos souborů na
+bázi \gls{SSH}}
+
+Nejjednodušším způsobem co do implementace je asi {\bf ruční kopírování} --
+uživatel sám čas od času zkopíruje zálohované soubory na nějaké jiné úložiště.
+Na tomto úložišti si uživatel může držet buď jen jednu kopii dat (vždy jen
+nejnovější verzi), což zabere řádově tolik místa, kolik zabírají zálohovaná data
+na zálohovaném stroji, nebo si může držet všechny historické verze. V takovém
+případě ale zálohy zaberou místo $[\hbox{počet záloh}]\times[\hbox{velikost dat}]$,
+což je pro časté zálohování velkého objemu dat neudržitelné (objem dat lze sice
+snížit vhodnou kompresí, ale to oddálí problém jen o kus dále).
+
+Jako metodu kopírování lze zvolit mnoho protokolů, od kopírování po místním
+souborovém systému (což nebývá moc účinné proti selhání celého počítače nebo
+jeho ztrátou), přes kopírování přes síť pomocí \gls{FTP} nebo nad \gls{SSH}
+postaveným \gls{SCP}.
+
+Všechny tyto metody kopírování jsou ale \uv{hloupé}, udělají jen přesně to, co
+od nich žádáme -- zkopírují zadané soubory na cílové úložiště bez starosti o to,
+jestli již zde stejné soubory nebyly kopírovány dříve. Pokud byly provedeny jen
+malé změny, tak přenášíme zbytečně velké objemy dat, které již v cílovém místě
+uložená jsou.
+
+Kdybychom dokázali dostatečně bezpečně poznat, jaká data se nezměnila, mohli
+bychom objem přenášených dat výrazně snížit a kopírovat jen rozdílná data.
+Když zálohování provádí uživatel sám a ručně, může posloužit jako rozhodovací
+veličina v tom, která data se podle jeho mínění změnila a která je tedy potřeba
+zálohovat. To je ale jednak nespolehlivé a může to vést k chybám, ale hlavně se
+tento postup nedá použít při zautomatizování zálohování (což by mělo být jedním
+z hlavních cílů zálohovacích systémů).
+
+\newpage
+
+\section{Kopírování rozdílů}
+
+Když si vezmeme za cíl kopírovat jen ta data, která se oproti poslednímu
+zálohovanému stavu změnila, dostáváme se k otázce, jak dostatečně bezpečně
+poznat, co se změnilo.
+
+Vzhledem k vlastnostem v současnosti používaných souborových systémů je
+nejsnadnější dívat se na změny soubor po souboru a v případě změny ho přenést
+celý. Dá se zavést i drobnější granularita a sledovat data po menších blocích,
+než po celých souborech, ale to je již výrazně obtížnější.
+
+\newacronym{UNIX}{UNIX}{Operační systém vzniklý v roce 1969, který dal vzniknout
+celé rodině odvozených systémů -- Linux, BSD, Mac OS X, aj.}
+
+Současné souborové systémy si u každého souboru pamatují několik parametrů
+(vezmeme si za příklad souborové systémy vycházející z operačního systému
+\gls{UNIX}): vlastník a skupina, vlastnická, skupinová a ostatní práva, čas
+poslední změny, velikost souboru a několik dalších parametrů.
+
+Pokud uvažujeme soubory s parametry, je potřeba odlišit změny pouze v nich
+(například změna vlastníka či skupiny) od změn na datech souboru. Parametry
+souboru je nutné si přečíst vždy a tak změny na nich poznáme jednoduše, možností
+jak poznat změnu na datech souboru je pak vícero:
+
+\newacronym{MD5}{MD5}{TODO...}
+\newacronym{SHA1}{SHA1}{TODO...}
+
+\begin{itemize}
+	\item Kompletní porovnání obsahu souboru po bytech -- zabere čas lineární
+	s velikostí souboru a stejnou přenosovou kapacitu, je ale neomylné.
+	\item Kontrolní součet obsahu souboru -- je nutné stále spočítat kontrolní
+	součet (třeba pomocí \gls{MD5} nebo \gls{SHA1}) souboru v lineárním čase
+	k jeho velikosti, ale přenést mezi zálohovaným a zálohovacím strojem je
+	potřeba pouze tento kontrolní součet (a porovnat ho s uloženým). Při volbě
+	dobré hashovací funkce se věří, že nalezení {\it kolize} (nalezení více
+	různých souborů se stejným hashem) je extrémně nepravděpodovné a tedy
+	spolehlivé.
+	\item Porovnání jen parametrů (času poslední modifikace a velikosti) --
+	je nejrychlejší (jde jen o několik porovnání v konstantním čase) a pro
+	většinu situací je dostačující.
+\end{itemize}
+
+Důvodem, proč je poslední možnost považována za dostačující je ta, že je při
+běžném provozu jen velmi málo situací, kdy se změní obsah souboru, ale nezmění
+se čas jeho poslední modifikace a jeho velikost. Většinou to vyžaduje přímou
+a vědomou akci, kterou se čas modifikace souboru nastaví zpět na původní
+hodnotu.
+
+Situace, ve které je porovnání jen podle velikosti a času modifikace
+nedostačující, je již nastíněné odhalování útoků na zálohovaný stroj. Pokud se
+již útočníkovi povede získat kontrolu nad strojem, může snadno modifikovat
+systémové soubory a potom změnit čas jejich modifikace nazpět. Pokud se před
+takovou situací chceme chránit, je vhodné občas nechat zkontrolovat alespoň
+kontrolní součty všech souborů oproti verzi uložené v zálohovacím systému.
+
+V současnosti jedním z nejvíce využívaných protokolů a současně i programů
+implementující nějakým způsobem kopírování jen rozdílných souborů je {\bf rsync}
+(viz \cite{rsync}). Ten potřebuje na jedné straně běžícího klienta a na druhé
+straně běžící server, kteří si mezi sebou vyměňují různé parametry a kontrolní
+součty souborů a jejich částí. Hlavním cílem je snížit objem síťové komunikace
+na minimum a přenášet jen nezbytné množství dat (přenos navíc probíhá
+komprimovaně).
+
+Bohužel primárním cílem rsyncu je {\it synchronizace} dvou složek a není tak
+úplně vhodný k tomu ukládat si více záloh stejných dat do různých složek --
+neumí například sáhnout na soubory v jiné složce a použít je, pokud se obsah
+těchto souborů nezměnil. Hodí se tedy pro držení jedné kopie nejaktuálnějších
+dat, ale pro plnohodnotné zálohování je potřeba sáhnout po něčem mocnějším.
