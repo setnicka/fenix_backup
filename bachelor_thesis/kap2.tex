@@ -1,6 +1,160 @@
-\chapter{Název druhé kapitoly}
+\chapter{Vlastnosti zálohovacího systému FenixBackup}
 
-\section{Název první podkapitoly v druhé kapitole}
+Zálohovací systém {\it FenixBackup} dostal své jméno podle mýtického ptáka
+fénixe, který dokázal znovu a znovu povstávat znovuzrozený ze svého popela. To
+je docela trefná paralela obnově zálohovaných dat, když nás potká nějaká
+nešťastná událost.
 
-\section{Název druhé podkapitoly v druhé kapitole}
+Nyní se pokusíme představit si hlavní myšlenky, na kterých FenixBackup staví,
+a ukázat jeho použití.
+
+\section{Základní přehled}
+
+FenixBackup je souborově orientovaný zálohovací systém schopný si držet více
+historických verzí souborů. Každý soubor je v něm navíc ukládán nezávisle a tak
+je možné si od určitých souborů držet více historických záloh, než od jiných.
+
+Ukládání jednotlivých verzí funguje na principu rozdílových záloh ve formátu
+\gls{VCDIFF} s omezením na maximální hloubku na sebe navázaných delta rozdílů.
+
+Další možností bylo ukládat vždy celé nové verze souborů, sdružovat je k sobě
+a komprimovat, jako to dělá třeba verzovací systém Git (stavějící na myšlence,
+že podobná data vedle sebe se při komprimaci vhodným kompresním algoritmem
+výrazně zmenší), ale zvolil jsem raději cestu přes \gls{VCDIFF}. Při pokusech
+s několika většímu binárními soubory vycházely delta rozdíly menší, než když
+jsme jednotlivé verze vzal a dohromady zkomprimoval.
+
+Velký důraz byl kladen také na snadnou, přehlednou, ale přitom dostatečně mocnou
+schopnost konfigurace, které by měla umožňovat popsat všechny myslitelné
+scénáře zálohování.
+
+\newacronym{SSHFS}{SSHFS}{TODO...}
+
+Dalším mým cílem bylo umožnit snadné rozšiřování systému a to jednak ve formě
+zajištění zpětné kompatibility dat, tak také ve snadném rozšiřování systému.
+Příkladem toho je systém {\it adaptérů} pro přístup k zálohovaným datům:
+Existuje společný interface pro komunikaci s adaptéry, ale to, jestli se data
+získají z lokálního filesystému, stáhnout přes \gls{SSHFS}, nebo bude probíhat
+komunikace přes rsync protokol, by mělo být samotnému jádru zálohovacího
+systému jedno.
+
+\section{Konfigurace}
+
+Konfigurační soubor se vztahuje vždy k jednomu zálohovanému stroji a obsahuje
+tři části. První specifikuje úložiště zálohovaných dat, druhá z nich popisuje
+způsob připojení k zálohovanému stroji -- volba adaptéru a parametry pro něj
+(například cesta v rámci lokálního souborového systému, nebo adresu a port
+stroje, na který se připojit) a poslední a nejobsáhlejší nakonec popisuje
+zálohovací pravidla pro jednotlivé soubory.
+
+\subsection*{Ukázková konfigurace}
+
+Konfigurace pro zápis používá v mnoha projektech rozšířený zápis poskytovaný
+knihovnou {\it libconfig}.%
+\footnote{http://www.hyperrealm.com/libconfig/libconfig\_manual.html}
+Ukázka je připojena níže:
+
+\begin{verbatim}
+baseDir: "./backup_dir"
+dataSubdir: "data"
+
+adapter: {
+  type: "local_filesystem"
+  path: "/home/jirka/fenix_backup"
+}
+
+paths: (
+  { path: "/"
+    file_rules: (
+      { regex: ".*\.exe"
+        backup: false
+      }
+    )
+  },
+  { path: "/.git"
+    scan: false
+  },
+  { path: "/test_backup/"
+    scan: true
+    file_rules: (
+      {
+        backup: false
+      },
+      { regex: ".*\.fenixtree"
+        path_regex: ""
+        size_at_least: 10
+        size_at_most: 10485760
+        backup: true
+      }
+    )
+  }
+)
+\end{verbatim}
+
+První položka \texttt{baseDir} je povinná a popisuje, kam přesně má zálohovací
+systém ukládat svá data. Pak lze volitelně modifikovat názvy podsložek na
+ukládání dat souborů a souborových stromečků (\texttt{dataSubdir}
+a \texttt{treeSubdir}).
+
+Druhá položka \texttt{adapter} specifikuje způsob získávání zálohovaných dat.
+V první řadě je specifikováno, který adaptér se má použít, a zbytek položek je
+pak předán tomuto adaptéru jako jeho nastavení.
+
+Poslední části konfigurace se budeme věnovat v další podkapitole.
+
+\subsection{Zálohovací pravidla pro složky a soubory}
+
+Pravidla je možné specifikovat pro jakoukoliv cestu v zálohovaných datech
+(výchozí složka zálohy je označována jen pomocí lomítka: \texttt{/}) a stejnou
+cestu je možné uvést i vícekrát -- v takovém případě platí pro tuto cestu
+poslední specifikovaná pravidla.
+
+Pokud pro nějakou cestu nejsou specifikována pravidla (v reálném případě to bude
+pravděpodobně většina cest), použijí se pro ní nejbližší vyšší pravidla po cestě
+ke kořeni. Je možné tak třeba zakázat zálohování určitých složek.
+
+Mimo pravidel odvozených jen od cest existují také pravidla umožňující pokrýt
+třeba jen určitý typ souboru. Jsou také vázána na konkrétní cestu (a platí tak
+jen v určeném podstromě), ale je možné u nich zavést složitější způsoby
+filtrování. Je možné filtrovat podle následujících parametrů:
+
+\begin{itemize}
+	\item Regex\footnote{regulární výraz} názvu souboru -- pokud je nevyplněný,
+	odpovídá jakýkoliv soubor, pokud je neprázdný, musí celý název souboru
+	(jen souboru, bez cesty) odpovídat zadanému regexu.
+	\item Regex cesty k souboru -- podobně jako výše, nevyplněnému odpovídá vše,
+	vyplněnému jen soubory, které se nacházejí (oproti aktuálnímu adresáři)
+	na cestě odpovídající regexu.
+	\item Minimální a maximální velikost souboru (v bytech).
+\end{itemize}
+
+\noindent Při dotazu na konkrétní soubor se parametry pravidel pak určí takto:
+\begin{enumerate}
+	\item Vezmou se defaultní hodnoty pravidel.
+	\item Vyjde se z kořenové složky a postupně se aplikují všechna
+	vyhovující pravidla cestou (zadaná pravidla v tomto uzlu přepíší
+	dřívější zapamatované hodnoty).
+	\item V každém uzlu cesty, pokud zde existují pravidla pro jednotlivé
+	soubory, zkusí se všechny otestovat a aplikovat.
+	\item Pokud se dá po zadané cestě sestoupit ještě o úroveň níže, sestoupí
+	se a opakuje se znovu od bodu 3.
+	\item Nakonec se vrátí finální pravidla vzniklá aplikací všech pravidel
+	cestou.
+\end{enumerate}
+
+\noindent Poslední důležitou otázkou je, jaké všechna parametry lze nastavovat:
+\begin{itemize}
+	\item {\tt scan <true|false>}: Platí jen pro složky a říká, jestli vůbec
+	tuto složku prozkoumávat. Defaultně {\tt true}.
+	\item {\tt backup <true|false>}: Jestli zadaný soubor zálohovat, nebo
+	ne. Defaultně {\tt true}.
+	\item {\tt history <0-10>}: Parametr pro funkci na ředění historie, čím
+	vyšší číslo, tím více verzí držet. Defaultně {\tt 10}.
+	\item {\tt priority <0-10>}: Parametr pro prioritizační funkci. Určuje,
+	které soubory zálohovat dříve, než ostatní.
+\end{itemize}
+
+\section{Adaptéry pro přístup k zálohovaným datům}
+
+\section{Model ukládání dat}
 
