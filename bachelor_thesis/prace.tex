@@ -138,13 +138,22 @@ Praha 2015
 %%% Následuje vevázaný list -- kopie podepsaného "Zadání bakalářské práce".
 %%% Toto zadání NENÍ součástí elektronické verze práce, nescanovat.
 
+%%% PODĚKOVÁNÍ:
 %%% Na tomto místě mohou být napsána případná poděkování (vedoucímu práce,
 %%% konzultantovi, tomu, kdo zapůjčil software, literaturu apod.)
-
 \openright
 
 \noindent
-Poděkování TODO.
+{\bf\large Poděkování:}
+\medskip
+
+\noindent
+Rád bych poděkoval mému vedoucímu práce Mgr. Martinu Marešovi, Ph.D. za
+nadnesení tématu, které mě zaujalo, a za jeho konzultace a rady k vypracování
+práce. Těším se na případnou další spolupráci s rozvíjením vzniklého
+zálohovacího systému. Současně děkuji také nepočtu dalších, kteří mi nějakou
+radou, myšlenkou, co by systém mohl umět, nebo jinou podporou pomohli práci
+dokončit.
 
 \newpage
 
@@ -179,46 +188,65 @@ V \hbox to 2cm{\dotfill} dne \hbox to 2cm{\dotfill}
 \setlength\parindent{0mm}
 \setlength\parskip{5mm}
 
-Název práce:
+{\bf Název práce:}
 Zálohovací systém
 
-Autor:
+{\bf Autor:}
 Jiří Setnička
 
-Katedra:
+{\bf Katedra:}
 Katedra aplikované matematiky
 
-Vedoucí bakalářské práce:
+{\bf Vedoucí bakalářské práce:}
 Mgr. Martin Mareš, Ph.D., Katedra aplikované matematiky
 
-Abstrakt: TODO
+{\bf Abstrakt:}
+Přehled existujících přístupů k zálohování dat a zvážení jejich předností s
+ohledem na použití -- rozdílové zálohování, snaha co nejméně vytěžovat
+přenosovou i diskovou kapacitu a automatizace. Se zvážením předchozího poté
+popis souběžně s touto prací vzniklého zálohovacího systému FenixBackup jako
+souborově orientovaného, schopného si držet více historických verzí a
+pracujících s rozdílovými zálohami. Druhá část práce se pak zabývá detaily jeho
+implementace a použití včetně popisu konfigurace a ukládaných dat. FenixBackup
+je napsaný v C{\tt ++}11 s použitím několika externích knihoven. V závěru je
+nastíněn možný směr, kterým se může vývoj systému ubírat.
 % abstrakt v rozsahu 80-200 slov; nejedná se však o opis zadání bakalářské práce
 
-Klíčová slova: zálohování
+{\bf Klíčová slova:} zálohování, diff, obnova dat
 % 3 až 5 klíčových slov
 
 \vss}\nobreak\vbox to 0.49\vsize{
 \setlength\parindent{0mm}
 \setlength\parskip{5mm}
 
-Title:
+{\bf Title:}
 A backup system
 
-Author:
+{\bf Author:}
 Jiří Setnička
 
-Department:
+{\bf Department:}
 Department of Applied Mathematics
 % dle Organizační struktury MFF UK v angličtině
 
-Supervisor:
+{\bf Supervisor:}
 Mgr. Martin Mareš, Ph.D., Department of Applied Mathematics
 
-Abstract: TODO
+{\bf Abstract:}
+An overview of existing approaches to data backup and their strengths with
+regard to use - a differential backup, an attempt to use at least
+network and storage capacity and automatization. After considering the previous
+describe the resulting backup system FenixBackup as file-oriented differential
+backup system capable holding more historical versions.
+The second part of the thesis deals with the details of FenixBackup
+implementation and usage, including a description of configuration and data
+storage. FenixBackup is written in C{\tt ++}11 using few external libraries.
+In conclusion, outlines the possible directions which the development of
+the system could follow.
 % abstrakt v rozsahu 80-200 slov v angličtině; nejedná se však o překlad
 % zadání bakalářské práce
 
-Keywords: TODO
+{\bf Keywords:} backup, diff, data recovery
 % 3 až 5 klíčových slov v angličtině
 
 \vss}
@@ -239,12 +267,10 @@ Keywords: TODO
 
 %%% Jednotlivé kapitoly práce jsou pro přehlednost uloženy v samostatných souborech
 \include{uvod}
+
 \include{kap1}
 \include{kap2}
 \include{kap3}
-
-% Ukázka použití některých konstrukcí LateXu (odkomentujte, chcete-li)
-% \include{ukazka}
 
 \include{zaver}
 
@@ -252,7 +278,7 @@ Keywords: TODO
 \include{literatura}
 
 %%% Tabulky v bakalářské práci, existují-li.
-\chapwithtoc{Seznam tabulek}
+% \chapwithtoc{Seznam tabulek}
 
 %%% Použité zkratky v bakalářské práci, existují-li, včetně jejich vysvětlení.
 % \chapwithtoc{Seznam použitých zkratek}

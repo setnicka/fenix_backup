@@ -5,4 +5,122 @@ C{\tt++}11. Vyvíjen byl na platformě operačního systému Linux a je optimali
 pro jeho systém práv a parametrů souborového systému, ale měl by fungovat na
 všech hlavních platformách.
 
+\section{Obecné návrhové vzory}
+
+\newacronym{PIMPL}{PIMPL}{Návrhový idiom \uv{private implementation} pokoušející
+se skrýt co nejvíce implementace před vnějším světem}
+
+Při implementaci jsem se držel snahy mít v hlavičkových souborech tříd co možná
+nejméně položek nepotřebných jako rozhraní pro komunikaci s ostatními třídami.
+Většina privátních proměnných a funkcí je tedy (podle \gls{PIMPL} idiomu)
+zapouzdřena uvnitř vnořených tříd
+
+Důvodem pro tuto snahu je za prvé přehlednost hlavičkových souborů a za druhé
+odstranění potřeby překompilování všech souborů, které daný hlavičkový soubor
+includují při změně v privátní metodě.
+
+Dále se v celém systému hojně používají chytré pointery zavedené v C{\tt ++}11,
+které na mnoha místech zjednodušují zacházení s instancemi tříd, pokud si na ně
+potřebujeme držet odkaz z více míst zároveň.
+
+Vše bydlí ve jmenném prostoru {\it FenixBackup}.
+
+\section{Přehled tříd a jejich funkce}
+
+V minulé části jsme si nastínili schéma stromečků reprezentujících jednotlivé
+zálohy a držící informace o souborech, a schéma datových bloků.
+
+Souborové stromečky jsou představovány třídou {\it FileTree} a obsahují většinu
+logiky související se zálohováním souborů. V jednotlivých jeho uzlech pak bydlí
+instance třídy {\it FileInfo}, jež si drží informace vždy o jedné složce,
+normálním souboru nebo symlinku. V případě složky si pamatují pointery na v ní
+obsažené soubory, jinak si pamatují hash obsahu.
+
+Hashe obsahu odkazují na instance třídy {\it FileChunk}, které již drží finální
+data. To je vždy \gls{VCDIFF} oproti prázdnému souboru, nebo jinému souboru
+reprezentovanému instancí třídy {\it FileChunk}.
+
+\subsection{FileTree}
+
+Hlavní logika jádra zálohovacího systému je soustředěna do třídy {\it FileTree},
+jež obsahuje tři metody pro registraci položek do souborového stromu:
+
+\begin{itemize}
+	\item\texttt{AddDirectory(rodic, jmeno\_souboru, parametry)}
+	\item\texttt{AddFile(rodic, jmeno\_souboru, parametry)}
+	\item\texttt{AddSymlink(rodic, jmeno\_souboru, parametry)}
+\end{itemize}
+
+Každá z těchto metod vrací odkaz na nově přidanou položku (který se pak třeba
+v případě složky dá využít pro přidání položek do ní), nebo \texttt{nullptr},
+pokud daná věc nemá být uložena ve stromě souborů (a tedy nemá například smysl
+procházet podstrom souborů pod touto složkou).
+
+Dále obsahuje třída {\it FileTree} metodu pro vrácení seznamu souborů, které si
+zálohovací systém přeje dodat, a sadu dvou metod pro uložení nového obsahu
+položky (volá adaptér pokaždé, když se mu povede získat obsah nějakého souboru)
+a pro vrácení obsahu uloženého souboru:
+
+\begin{itemize}
+	\item\texttt{FinishTree()} $\rightarrow$ vektor odkazů na položky stromu
+	\item\texttt{ProcessFileContent(polozka\_stromu, inputstream)}
+	\item\texttt{GetFileContent(polozka\_stromu, outputstream)}
+\end{itemize}
+
+Výše vyjmenované metody jsou hlavními komunikačními prostředky jádra
+zálohovacího systému. Dále třída {\it FileTree} obsahuje statické metody pro
+načtení konkrétního stromu souborů reprezentujícího jednu zálohu z úložiště a
+několik pomocných metod (uložení stromu, nalezení položky podle cesty nebo hashe
+obsahu, vrácení kořenu celého stromu kvůli předání první vrstvě položek jako
+rodiče aj.).
+
+\subsection{FileInfo}
+
+Hlavním úkolem této třídy je držet si informace o jednom souboru, složce či
+symlinku. V případě složky obsahuje vektor obsažených souborů, v ostatních
+případech obsahuje hash odkazující na příslušný datový blok. Ve všech případech
+si drží parametry.
+
+Mezi základní metody patří následující tři, zbytek veřejných metod jsou pak buď
+settery nebo gettery na vlastnosti souboru:
+
+\begin{itemize}
+	\item\texttt{AddChild(jmeno, odkaz\_na\_instanci\_FileInfo)}
+	\item\texttt{GetChild(jmeno)} $\rightarrow$ odkaz na instanci {\it FileInfo}
+	\item\texttt{GetChilds()} $\rightarrow$ odkaz na asociativní pole odkazů
+	na {\it FileInfo}
+\end{itemize}
+
+\subsection{Ostatní třídy}
+
+Třída {\it FileChunk} představuje jednotlivé datové bloky. Každá instance třídy
+si záznam, jestli je odvozená jako rozdíl od jiné instance, nebo jestli je
+takzvaně na \uv{nulté úrovni} a na ničme nezávisí.
+
+Dále existuje třída představující konfiguraci {\it Config}, která vrací
+jednotlivé položky načtené konfigurace a pak řeší dotazy na pravidla pro
+jednotlivé zálohované soubory (opět podle načtené konfigurace).
+
 \section{Ukládání dat}
+
+Souborové stromy a datové bloky jsou ukládány na oddělená místa. Každý souborový
+strom, stejně jako každý datový blok, sídlí v samostatném souboru na disku.
+Soubory jsou ukládány v binárním formátu.
+
+Pro serializaci instancí tříd {\it FileTree} (s navázanými instancemi třídy
+{\it FileInfo}) a {\it FileChunk} se používá serializační knihovna {\it Cereal}%
+\footnote{\texttt{http://uscilab.github.io/cereal/index.html}}, což je projekt
+vzniklý cíleně pro C{\tt ++}11 a novější využívající vlastností chytrých
+pointerů pro serializaci složitých datových struktur.
+
+Ke každé serializované instanci třídy {\it FileChunk} je ještě připojen blok
+dat ve formátu \gls{VCDIFF} popisující rozdíl oproti prázdnému souboru, nebo
+oproti nějakému jinému uloženému datovému bloku.
+
+\subsection{Postup uložení nové verze souboru}
+
+\section{Obnova dat}
+
+TODO (nejdříve smazat a pak až obnovit - hardlinky)
+
+\section{Mazání uložených dat -- uvolňování místa}
