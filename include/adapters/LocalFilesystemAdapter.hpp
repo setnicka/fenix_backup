@@ -14,6 +14,10 @@ class LocalFilesystemAdapter: public Adapter {
 
     virtual std::shared_ptr<FileTree> Scan();
     virtual void GetAndProcess(std::shared_ptr<FileInfo> file);
+
+    virtual void RestoreFile(std::shared_ptr<FileInfo> file, restore_mode mode = ALL);
+    virtual void RestoreFileToLocalPath(std::shared_ptr<FileInfo> file, const std::string& path, restore_mode mode = ALL, bool preserve_inbackup_path = true);
+    virtual void RestoreFileToRemotePath(std::shared_ptr<FileInfo> file, const std::string& path, restore_mode mode = ALL, bool preserve_inbackup_path = true);
   private:
     class LocalFilesystemAdapterData;
     std::unique_ptr<LocalFilesystemAdapterData> data;
