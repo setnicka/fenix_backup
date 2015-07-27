@@ -1,3 +1,5 @@
+#include <time.h>
+
 #include <cereal/archives/binary.hpp>
 #include <cereal/archives/json.hpp>
 
@@ -6,7 +8,7 @@
 
 namespace FenixBackup {
 
-enum file_type { DIR, FILE };
+enum file_type { DIR, FILE, SYMLINK };
 
 enum version_file_status { UNKNOWN, NEW, UNCHANGED, UPDATED_PARAMS, UPDATED_FILE, NOT_UPDATED };
 // UNKNOWN - new file, which is not yet saved (there isn't any older file)
@@ -25,8 +27,10 @@ struct file_params {
 	uid_t	uid;				// user ID of owner
 	gid_t	gid;				// group ID of owner
 	size_t	file_size;			// total size, in bytes
-	// time_t	access_time;		// time of last access
-	time_t	modification_time;	// time of last modification
+	// timespec access_time;    // time of last access (nanoseconds)
+	// time_t	access_time;	// time of last access
+	timespec modification_time; // time of last modification (nanoseconds)
+	// time_t modification_time;	// time of last modification
 	// TODO: ACL
 
 	bool operator==(const file_params &second) const;
@@ -41,10 +45,25 @@ struct file_params {
             cereal::make_nvp("uid", uid),
             cereal::make_nvp("gid", gid),
             cereal::make_nvp("file_size", file_size),
-            cereal::make_nvp("modification_time", modification_time)
+            cereal::make_nvp("mtime_seconds", modification_time.tv_sec),
+            cereal::make_nvp("mtime_nanoseconds", modification_time.tv_nsec)
         );
     }
 };
+
+inline bool operator==(const timespec& a, const timespec& b) {
+    return (a.tv_sec == b.tv_sec && a.tv_nsec == b.tv_nsec);
+}
+inline bool operator!=(const timespec& a, const timespec& b) { return !(a==b); }
+
+inline bool file_params::operator==(const file_params &second) const {
+    return (permissions == second.permissions
+            && uid == second.uid
+            && gid == second.gid
+            && file_size == second.file_size
+            && modification_time == second.modification_time);
+}
+inline bool file_params::operator!=(const file_params &second) const { return !operator==(second); }
 
 }
 

@@ -10,7 +10,6 @@
 
 #include "FenixExceptions.hpp"
 #include "FileTree.hpp"
-#include "FileChunk.hpp"
 #include "Functions.hpp"
 
 namespace FenixBackup {
@@ -73,7 +72,7 @@ class FileTree::FileTreeData {
         if (node->GetType() == DIR) {
             for(auto file: node->GetChilds()) load_arrays(file.second);
         } else {
-            file_hashes.insert(std::make_pair(node->GetFileHash(), node));
+            file_hashes.insert(std::make_pair(node->GetHash(), node));
         }
     }
 };
@@ -185,6 +184,10 @@ std::shared_ptr<FileInfo> FileTree::AddFile(std::shared_ptr<FileInfo> parent, st
 	return data->AddNode(FILE, parent, name, params);
 }
 
+std::shared_ptr<FileInfo> FileTree::AddSymlink(std::shared_ptr<FileInfo> parent, std::string const& name, file_params params) {
+	return data->AddNode(SYMLINK, parent, name, params);
+}
+
 std::shared_ptr<FileInfo> FileTree::FileTreeData::AddNode(file_type type, std::shared_ptr<FileInfo> parent, std::string const& name, file_params params) {
 	if (parent->GetType() != DIR) throw std::invalid_argument("Parent must be dir");
 
@@ -216,15 +219,14 @@ std::shared_ptr<FileInfo> FileTree::FileTreeData::AddNode(file_type type, std::s
 				if (type == DIR) {
 					// Check only params
 					status = (params == prev_version_params ? UNCHANGED : UPDATED_PARAMS);
-				} else {
+				} else { // FILE or SYMLINK
 					if (prev_version_params.file_size != params.file_size || prev_version_params.modification_time != params.modification_time)
                         status = NOT_UPDATED;
                     else {
                             status = (params == prev_version_params ? UNCHANGED : UPDATED_PARAMS);
                             // No change to the file content -> same hash and chunk name as the previous
-                            file->SetFileHash(prev_version_file->GetFileHash());
-                            file->SetChunkName(prev_version_file->GetChunkName());
-                            file_hashes.insert(std::make_pair(file->GetFileHash() ,file));
+                            file->SetHash(prev_version_file->GetHash());
+                            file_hashes.insert(std::make_pair(file->GetHash() ,file));
                     }
 				}
 			}
@@ -234,7 +236,7 @@ std::shared_ptr<FileInfo> FileTree::FileTreeData::AddNode(file_type type, std::s
 	file->SetStatus(status);
 
 	// Count score and add file to score-heap
-	if (type == FILE && status != UNCHANGED && status != UPDATED_PARAMS) CountScore(file);
+	if ((type == FILE || type == SYMLINK) && status != UNCHANGED && status != UPDATED_PARAMS) CountScore(file);
 
 	return file;
 }
@@ -284,78 +286,16 @@ void FileTree::SaveTree() {
     rename(temp_name.c_str(), Config::GetTreeFilename(data->tree_name).c_str());
 }
 
-std::shared_ptr<FileTree> FileTree::GetPrevVersion() { return GetHistoryTree(data->prev_version_tree_name); }
-std::shared_ptr<FileTree> FileTree::GetNextVersion() {
+std::shared_ptr<FileTree> FileTree::GetPrevTree() { return GetHistoryTree(data->prev_version_tree_name); }
+std::shared_ptr<FileTree> FileTree::GetNextTree() {
     auto trees = GetHistoryTreeList();
     for (auto i = trees.rbegin(); i != trees.rend(); ++i) {
         if (GetTreeName().compare(*i) == 0) break;
         auto tree = GetHistoryTree(*i);
-        if (tree->GetPrevVersion()->GetTreeName() == GetTreeName()) return(tree);
+        if (tree->GetPrevTree()->GetTreeName() == GetTreeName()) return(tree);
     }
 
     return nullptr;
-}
-
-std::ostream& FileTree::GetFileContent(std::shared_ptr<FileInfo> file_node, std::ostream& out) {
-    if (file_node != GetFileById(file_node->GetId())) throw FileTreeException("Cannot call GetFileContent with FileInfo from different FileTree\n");
-    if (file_node->GetType() == DIR) throw FileTreeException("Cannot get content of directory\n");
-
-    auto chunk = FileChunk::GetChunk(file_node->GetChunkName());
-    out << chunk->LoadAndReturn();
-    return out;
-}
-
-void FileTree::ProcessFileContent(std::shared_ptr<FileInfo> file_node, std::istream& file) {
-    if (file_node->GetId() >= data->files.size() || file_node != GetFileById(file_node->GetId()))
-        throw FileTreeException("Cannot call ProcessFileContent with FileInfo from different FileTree\n");
-    if (file_node->GetType() == DIR) throw FileTreeException("Cannot process content for directory\n");
-
-    // 1. Count SHA256 hash of the given file
-    std::string file_hash = Functions::ComputeFileHash(file);
-
-    file_node->SetFileHash(file_hash);
-    data->file_hashes.insert(std::make_pair(file_hash, file_node));
-
-    // 2. If UNKNOWN ancestor try to localize it using file_hash
-    if (file_node->GetVersionStatus() == UNKNOWN && GetPrevVersion() != nullptr) {
-        auto prev_version_node = GetPrevVersion()->GetFileByHash(file_hash);
-        if (prev_version_node != nullptr) {
-            file_node->SetPrevVersionId(prev_version_node->GetId());
-            file_node->SetChunkName(prev_version_node->GetChunkName());
-            auto status = (file_node->GetParams() == prev_version_node->GetParams() ? UNCHANGED : UPDATED_PARAMS);
-            file_node->SetStatus(status);
-            return;
-        }
-    }
-
-    // If file has the same size and same hash as older file, there were only params updated
-    if (GetPrevVersion() != nullptr && file_node->GetPrevVersionId() != 0) {
-            auto prev_version_node = GetPrevVersion()->GetFileById(file_node->GetPrevVersionId());
-            if (prev_version_node != nullptr
-                && file_node->GetParams().file_size == prev_version_node->GetParams().file_size
-                && file_node->GetFileHash() == prev_version_node->GetFileHash()
-            ) {
-                file_node->SetStatus(UPDATED_PARAMS);
-                return;
-            }
-    }
-
-    // 3. Compute and save FileChunk
-    std::string chunk_name = GetTreeName() + "_" + std::to_string(file_node->GetId());
-    FileChunk chunk(chunk_name);
-
-    std::string prev_chunk = (file_node->GetPrevVersionId() != 0 ? GetPrevVersion()->GetFileById(file_node->GetPrevVersionId())->GetChunkName() : "" );
-    std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
-    chunk.ProcessStringAndSave(prev_chunk, content);
-
-    // 4. Update FileInfo for this file and save FileTree
-    file_node->SetFileHash(file_hash);
-    file_node->SetChunkName(chunk_name);
-    file_node->SetStatus(UPDATED_FILE);
-    data->file_hashes.insert(std::make_pair(file_hash, file_node));
-
-    // Save tree or not?
-    //SaveTree();
 }
 
 }

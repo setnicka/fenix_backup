@@ -59,7 +59,6 @@ void FileChunk::FileChunkData::LoadChunkInfo() {
     cereal::JSONInputArchive archive(is);
 
     archive(*this);
-    //serialize(archive);
 }
 
 ////////

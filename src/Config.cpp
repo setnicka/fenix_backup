@@ -174,7 +174,7 @@ void Config::Load(std::string filename) {
     // Get config from config file
     // 1. Required fields
 	if (!config_file.lookupValue("baseDir", data.baseDir)) throw ConfigException("Missing 'baseDir' in the config file '"+filename+"'\n");
-	if (!config_file.lookupValue("adapter", data.adapter)) throw ConfigException("Missing 'adapter' in the config file '"+filename+"'\n");
+	if (!config_file.lookupValue("adapter.type", data.adapter)) throw ConfigException("Missing 'adapter.type' in the config file '"+filename+"'\n");
 
     // 2. Optional fields
     config_file.lookupValue("treeSubdir", data.treeSubdir);

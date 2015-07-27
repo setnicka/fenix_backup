@@ -1,6 +1,10 @@
 #ifndef FILETREE_HPP
 #define FILETREE_HPP
 
+namespace FenixBackup {
+    class FileTree;
+}
+
 #include "Config.hpp"
 #include "FileInfo.hpp"
 
@@ -20,6 +24,7 @@ class FileTree {
 	std::shared_ptr<FileInfo> GetRoot();
 	std::shared_ptr<FileInfo> AddDirectory(std::shared_ptr<FileInfo> parent, std::string const& name, file_params params);
 	std::shared_ptr<FileInfo> AddFile(std::shared_ptr<FileInfo> parent, std::string const& name, file_params params);
+	std::shared_ptr<FileInfo> AddSymlink(std::shared_ptr<FileInfo> parent, std::string const& name, file_params params);
 
 	std::shared_ptr<FileInfo> GetFileByPath(std::string const& file_path);
 	std::shared_ptr<FileInfo> GetFileByHash(std::string const& file_hash);
@@ -30,12 +35,8 @@ class FileTree {
 	// Saving functions
 	const std::string& GetTreeName();
 	void SaveTree();
-	std::shared_ptr<FileTree> GetNextVersion();
-	std::shared_ptr<FileTree> GetPrevVersion();
-
-	// In the packing process
-	void ProcessFileContent(std::shared_ptr<FileInfo> file_node, std::istream& file);
-	std::ostream& GetFileContent(std::shared_ptr<FileInfo> file_node, std::ostream& out);
+	std::shared_ptr<FileTree> GetNextTree();
+	std::shared_ptr<FileTree> GetPrevTree();
 
     // Static functions
     static const std::vector<std::string>& GetHistoryTreeList();

@@ -8,19 +8,12 @@
 
 #include "FenixExceptions.hpp"
 #include "FileInfo.hpp"
+#include "FileChunk.hpp"
+#include "Functions.hpp"
 
 namespace FenixBackup {
 
-bool file_params::operator==(const file_params &second) const {
-    return (permissions == second.permissions
-            && uid == second.uid
-            && gid == second.gid
-            && file_size == second.file_size
-            && modification_time == second.modification_time);
-}
-bool file_params::operator!=(const file_params &second) const { return !operator==(second); }
-
-// Hide data from .hpp file using PIMP idiom
+// Hide data from .hpp file using PIMPL idiom
 class FileInfo::FileInfoData {
   public:
 	file_type type;
@@ -28,9 +21,8 @@ class FileInfo::FileInfoData {
 	file_params params = {};
 
 	// Versioning
-	// std::string last_version;  // name of the last version
     unsigned int file_index;
-    unsigned int prev_version_file_index = 0;  // index of the file in the last version, 0 = no previous version
+    unsigned int prev_version_id = 0;  // index of the file in the last version, 0 = no previous version
 
     std::shared_ptr<FileInfo> parent;
     std::string name;
@@ -39,7 +31,6 @@ class FileInfo::FileInfoData {
 	std::unordered_map<std::string, std::shared_ptr<FileInfo>> files;
 	// For ordinal file
 	std::string file_hash;
-	std::string file_chunk_name;
 
     // Cache (not serialize)
     std::string path;
@@ -57,10 +48,9 @@ class FileInfo::FileInfoData {
             cereal::make_nvp("version_status", version_status),
             cereal::make_nvp("params", params),
             cereal::make_nvp("file_index", file_index),
-            cereal::make_nvp("prev_version_file_index", prev_version_file_index),
+            cereal::make_nvp("prev_version_id", prev_version_id),
             cereal::make_nvp("parent", parent),
             cereal::make_nvp("file_hash", file_hash),
-            cereal::make_nvp("file_chunk_name", file_chunk_name),
             cereal::make_nvp("files", files)
         );
         else throw FileInfoException("Unknown version "+std::to_string(version)+" of FileInfo serialized data\n");
@@ -113,16 +103,75 @@ std::shared_ptr<FileInfo> FileInfo::GetChild(std::string const& name) {
 
 const std::unordered_map<std::string, std::shared_ptr<FileInfo>>& FileInfo::GetChilds() { return data->files; }
 
+std::ostream& FileInfo::GetFileContent(std::ostream& out) {
+    if (data->type == DIR) throw FileInfoException("Cannot get content of directory\n");
+
+    auto chunk = FileChunk::GetChunk(data->file_hash);
+    out << chunk->LoadAndReturn();
+    return out;
+}
+
+void FileInfo::ProcessFileContent(std::istream& file, std::shared_ptr<FileTree> tree) {
+    if (data->type == DIR) throw FileInfoException("Cannot process content for directory\n");
+
+    // 1. Count SHA256 hash of the given file
+    data->file_hash = Functions::ComputeFileHash(file);
+
+    //data->file_hashes.insert(std::make_pair(file_hash, file_node));
+
+    // 2. If UNKNOWN ancestor try to localize it using file_hash
+    if (data->version_status == UNKNOWN && tree != nullptr  && tree->GetPrevTree() != nullptr) {
+        auto prev_version_node = tree->GetPrevTree()->GetFileByHash(data->file_hash);
+        if (prev_version_node != nullptr) {
+            data->prev_version_id = prev_version_node->GetId();
+            // file_node->SetChunkName(prev_version_node->GetChunkName());
+            data->version_status = (data->params == prev_version_node->GetParams() ? UNCHANGED : UPDATED_PARAMS);
+            return;
+        }
+    }
+
+    // If file has the same size and same hash as older file, there were only params updated
+    if (tree != nullptr && tree->GetPrevTree() != nullptr && data->prev_version_id != 0) {
+            auto prev_version_node = tree->GetPrevTree()->GetFileById(data->prev_version_id);
+            if (prev_version_node != nullptr
+                && data->params.file_size == prev_version_node->GetParams().file_size
+                && data->file_hash == prev_version_node->GetHash()
+            ) {
+                data->version_status = UPDATED_PARAMS;
+                return;
+            }
+    }
+
+    // 3. Compute and save FileChunk
+    //std::string chunk_name = GetTreeName() + "_" + std::to_string(file_node->GetId());
+
+    // 3. Test if exists chunk for this file_hash and eventually save it
+    if (FileChunk::GetChunk(data->file_hash) == nullptr) {
+        FileChunk chunk(data->file_hash);
+        std::string prev_chunk = (data->prev_version_id != 0 ? tree->GetPrevTree()->GetFileById(data->prev_version_id)->GetHash() : "" );
+        std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+        chunk.ProcessStringAndSave(prev_chunk, content);
+
+    }
+
+    // 4. Create file chunk
+
+    // 4. Update info for this file
+    data->version_status = (data->version_status == UNKNOWN ? NEW : UPDATED_FILE);
+
+    //data->file_hashes.insert(std::make_pair(file_hash, file_node));
+}
+
 // Setters
 void FileInfo::SetParams(file_params params) { data->params = params; }
 void FileInfo::SetStatus(version_file_status status) { data->version_status = status; }
 void FileInfo::SetId(unsigned int index) { data->file_index = index; }
-void FileInfo::SetPrevVersionId(unsigned int index) { data->prev_version_file_index = index; }
-void FileInfo::SetFileHash(std::string file_hash) { data->file_hash = file_hash; }
-void FileInfo::SetChunkName(std::string file_chunk_name) { data->file_chunk_name = file_chunk_name; }
+void FileInfo::SetPrevVersionId(unsigned int index) { data->prev_version_id = index; }
+void FileInfo::SetHash(std::string file_hash) { data->file_hash = file_hash; }
 // Getters
 const std::string& FileInfo::GetName() { return data->name; }
 file_type FileInfo::GetType() { return data->type; }
+version_file_status FileInfo::GetStatus() { return data->version_status; }
 version_file_status FileInfo::GetVersionStatus() { return data->version_status; }
 file_params FileInfo::GetParams() { return data->params; }
 unsigned int FileInfo::GetId() { return data->file_index; }
@@ -134,9 +183,8 @@ const std::string& FileInfo::GetPath() {
     return data->path;
 }
 std::shared_ptr<FileInfo> FileInfo::GetParent() { return data->parent; }
-unsigned int FileInfo::GetPrevVersionId() { return data->prev_version_file_index; }
-const std::string& FileInfo::GetFileHash() { return data->file_hash; }
-const std::string& FileInfo::GetChunkName() { return data->file_chunk_name; }
+unsigned int FileInfo::GetPrevVersionId() { return data->prev_version_id; }
+const std::string& FileInfo::GetHash() { return data->file_hash; }
 
 }
 CEREAL_CLASS_VERSION(FenixBackup::FileInfo::FileInfoData, 1);

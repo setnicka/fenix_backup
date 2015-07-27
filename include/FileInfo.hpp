@@ -5,7 +5,12 @@
 #include <ctime>
 #include <sys/stat.h>
 
+namespace FenixBackup {
+    class FileInfo;
+}
+
 #include "Global.hpp"
+#include "FileTree.hpp"
 
 namespace FenixBackup {
 
@@ -21,18 +26,17 @@ class FileInfo {
 	file_type GetType();
 	version_file_status GetVersionStatus();
 	file_params GetParams();
+	version_file_status GetStatus();
 	unsigned int GetId();
 	const std::string& GetPath();
 	unsigned int GetPrevVersionId();
-	const std::string& GetFileHash();
-	const std::string& GetChunkName();
+	const std::string& GetHash();
 
 	void SetParams(file_params params);
 	void SetStatus(version_file_status status);
 	void SetId(unsigned int index);
 	void SetPrevVersionId(unsigned int index);
-	void SetFileHash(std::string file_hash);
-	void SetChunkName(std::string file_chunk_name);
+	void SetHash(std::string file_hash);
 
 	std::shared_ptr<FileInfo> GetPrevVersion();
 	std::shared_ptr<FileInfo> GetParent();
@@ -40,6 +44,10 @@ class FileInfo {
 	void AddChild(std::string const& name, std::shared_ptr<FileInfo> child);
 	std::shared_ptr<FileInfo> GetChild(std::string const& name);
 	const std::unordered_map<std::string, std::shared_ptr<FileInfo>>& GetChilds();
+
+	// In the packing process
+	void ProcessFileContent(std::istream& file, std::shared_ptr<FileTree> tree = nullptr);
+	std::ostream& GetFileContent(std::ostream& out);
 
     class FileInfoData;
   private:
