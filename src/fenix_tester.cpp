@@ -42,6 +42,9 @@ int main() {
         tree->SaveTree();
 
 
+        adapter->RestoreSubtreeToLocalPath(tree->GetRoot(), "/tmp/pokus");
+
+
         //FenixBackup::file_params params = {};
         //params.file_size = 12;
         //auto f1 = tree->AddFile(tree->GetRoot(), "souborB.txt", params);

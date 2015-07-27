@@ -1,17 +1,15 @@
 baseDir="./test_backup"
 
-adapter="local_filesystem"
-adapter_params: {
-  path="/home/jirka/bc_FenixBackup"
+adapter: {
+  type: "local_filesystem"
+  path: "/home/jirka/bc_FenixBackup"
 }
 
 paths: (
   { path: "/"
     backup: true
     file_rules: (
-      { regex: ".*\.exe"
-        backup: false
-      }
+      @include "test_backup/no_exe.config"
     )
   },
   { path: "/.git"
@@ -20,9 +18,7 @@ paths: (
   { path: "/test_backup/"
     scan: true
     file_rules: (
-      {
-        backup: false
-      },
+      { backup: false },
       { regex: ".*\.fenixtree"
         path_regex: ""
         size_at_least: 10
