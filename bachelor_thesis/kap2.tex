@@ -126,10 +126,11 @@ ke kořeni. Je možné tak třeba zakázat zálohování určitých složek.
 	tuto složku prozkoumávat. Defaultně {\tt true}.
 	\item {\tt backup <true|false>}: Jestli zadaný soubor zálohovat, nebo
 	ne. Defaultně {\tt true}.
-	\item {\tt history <0-10>}: Parametr pro funkci na ředění historie, čím
-	vyšší číslo, tím více verzí držet. Defaultně 10.
-	\item {\tt priority <0-10>}: Parametr pro prioritizační funkci. Určuje,
-	které soubory zálohovat dříve, než ostatní. Defaultně 10.
+	\item {\tt history <1-10>}: Parametr pro funkci na ředění historie, čím
+	vyšší číslo, tím více verzí držet. Defaultně 1.
+	\item {\tt priority <1-10>}: Parametr pro prioritizační funkci. Určuje,
+	které soubory zálohovat dříve, než ostatní. Čím vyšší číslo, tím
+	důležitější. Defaultně 1.
 \end{itemize}
 
 \subsection{Zálohovací pravidla podle specifičtějšího výběru}
@@ -206,9 +207,9 @@ a představován stejnojmenným datovým blokem. Tento datový blok může být 
 Pro fungování zálohovacího systému předpokládáme, že nalezení kolize v
 kryptografické hashovací funkci jako je \gls{SHA256} je extrémně
 nepravděpodobné (zatím není známý ani cílený útok, který by uměl vyprodukovat
-kolizi, a velikost kolizní domény je $2^256$). Na stejném předpokladu
+kolizi, a velikost kolizní domény je $2^{256}$). Na stejném předpokladu
 o nepravděpodobných kolizích v reálném nasazení staví i verzovací systém Git,
-který navíc používá kratší hashe generované \gls{SHA1}.
+který navíc používá jen kratší hashe generované \gls{SHA1}.
 
 Díky tomu, že jsou datové bloky pojmenovány hashem souboru, který mají
 představovat, řeší se velmi efektivním způsobem duplikáty souborů. Ačkoliv třeba
@@ -216,8 +217,8 @@ dva stejné soubory mohou mít úplně rozdílnou historii, tak finálně je ulo
 v zálohovacím systému jen jeden datový blok, který představuje oba soubory.
 
 Datové bloky a jejich případné rozdílové návaznosti tedy vůbec nemusí
-korespondovat s historií jednotlivých souborů uloženou v souborovém stromu. Ale
-díky tomu, že v souborovém stromu je uložený hash každé jednotlivé verze
+korespondovat s historií jednotlivých souborů uloženou v souborových stromech.
+Ale díky tomu, že v souborovém stromu je uložený hash každé jednotlivé verze
 souboru, lze všechny historické verze snadno zrekonstruovat.
 
 Záznam o každém jednotlivém souboru se může navíc nacházet v jednom z
@@ -259,19 +260,39 @@ adaptéru a ten by již tento podstrom neměl dále procházet.
 
 Během této fáze se jádro zálohovacího systému pokouší (podle cesty, času poslední
 modifikace a velikosti souborů) rozhodnout, které soubory se nezměnily, u kterých
-se změnily pouze parametry, a které soubory bude potřeba stáhnout pro zálohování
+se změnily pouze parametry, a které soubory bude potřeba stáhnout pro uložení
 jejich nové verze.
 
-Seznam požadovaných souborů (utříděný podle prioritizační funkce) pak předá
-nazpět adaptéru a ten by měl zařídit získání obsahu těchto souborů a předání
-obsahu jádru zálohovacího systému.
+Seznam požadovaných souborů (utříděný podle prioritizační funkce, viz dále) pak
+předá nazpět adaptéru a ten by měl zařídit získání obsahu těchto souborů a
+předání obsahu jádru zálohovacího systému.
 
 To si spočte hash souborů, zjistí, zdali případně nemá již soubor se stejným
 hashem uložený, a pokud ne, uloží nový datový blok (buď jako kompletní datový
 blok, nebo jako \gls{VCDIFF} oproti jinému).
 
-Systém je připravený i na to, že ne vždy se povede provést kompletní zálohu,
-například u přenosných počítačů připojených k rychlé síti jen po omezenou dobu.
-V takovém případě zůstanou některé soubory ve stromu se stavem \texttt{UNKNOWN}
-nebo \texttt{NOT\_UPDATED} a další zálohy na to berou ohled (soubory, jež se
-nepovedlo zálohovat delší dobu, mají při příštím zálohování přednost).
+\section{Priorita zálohovaných souborů}
+
+Různé soubory mohou mít konfigurací jinak nastavené priority zálohování, čímž
+lze zálohovacímu systému sdělit, o které soubory máme větší zájem.
+
+Do rozhodovacího procesu se také promítá to, jakou nejmladší verzi daného
+souboru již máme uloženou. Systém je totiž připravený i na to, že ne vždy se
+povede provést kompletní zálohu, například u přenosných počítačů připojených k
+rychlé síti jen po omezenou dobu. V takovém případě zůstanou některé soubory ve
+stromu se stavem \texttt{UNKNOWN} nebo \texttt{NOT\_UPDATED} a další zálohy na
+to berou ohled (soubory, jež se nepovedlo zálohovat delší dobu, mají při příštím
+zálohování přednost).
+
+Konkrétně si jádro zálohovacího systému přiděluje každému souboru číselné
+{\it skóre} odpovídající následujícímu vztahu:
+
+$$[\hbox{čas od poslední zálohované verze}]\times[\hbox{priorita souboru}]$$
+
+Pokud soubor nemá známou minulou verzi, tak se jako čas poslední zálohované
+verze bere čas minulého spuštění zálohování -- protože tento nový soubor se mohl
+objevit kdykoliv v mezičase mezi touto poslední zálohou a současností.
+
+Tímto postupem by se mělo zajistit zálohování postupně všech souborů i v případě,
+že zálohovaný stroj bývá připojen k zálohovacímu systému pravidelně jen po
+omezenou dobu.
