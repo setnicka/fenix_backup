@@ -28,6 +28,12 @@
 %% Pokud používáte csLaTeX (doporučeno):
 %\usepackage{czech}
 \usepackage[czech]{babel}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+
+% Glyphtounicode cause unicode text easily searchable a copyable from PDF
+\input{glyphtounicode}
+\pdfgentounicode=1
 
 %% Použité kódování znaků: obvykle latin2, cp1250 nebo utf8:
 \usepackage[utf8]{inputenc}
