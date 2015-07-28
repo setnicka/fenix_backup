@@ -41,8 +41,8 @@ class Config {
     struct Rules {
         bool scan = true;
         bool backup = true;
-        int priority = 0;
-        int history = 10;
+        int priority = 1;
+        int history = 1;
     };
 
     static const Rules GetRules(const std::string& path, const file_params& params);

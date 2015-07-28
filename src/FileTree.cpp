@@ -24,6 +24,7 @@ class FileTree::FileTreeData {
 
 	std::shared_ptr<FileInfo> root;
 	std::string tree_name;
+	time_t construct_time;
 
 	// Versioning
 	std::string prev_version_tree_name;
@@ -35,13 +36,14 @@ class FileTree::FileTreeData {
 
     std::vector<std::pair<std::shared_ptr<FileInfo>, int>> files_to_process;
 
-	std::shared_ptr<FileInfo> AddNode(file_type type, std::shared_ptr<FileInfo> parent, std::string const& name, file_params params);
-	void CountScore(std::shared_ptr<FileInfo> file);
+	std::shared_ptr<FileInfo> AddNode(file_type type, std::shared_ptr<FileInfo> parent, const std::string& name, const file_params& params);
+	void CountScore(std::shared_ptr<FileInfo> file, const Config::Rules& rules);
 
     template <class Archive>
     void save(Archive & ar, std::uint32_t const version) const {
         if (version == 1) ar(
             cereal::make_nvp("tree_name", tree_name),
+            cereal::make_nvp("construct_time", construct_time),
             cereal::make_nvp("prev_version_tree_name", prev_version_tree_name),
             cereal::make_nvp("prev_version_hash", prev_version_hash),
             cereal::make_nvp("root", root)
@@ -53,6 +55,7 @@ class FileTree::FileTreeData {
     void load(Archive & ar, std::uint32_t const version) {
         if (version == 1) ar(
             cereal::make_nvp("tree_name", tree_name),
+            cereal::make_nvp("construct_time", construct_time),
             cereal::make_nvp("prev_version_tree_name", prev_version_tree_name),
             cereal::make_nvp("prev_version_hash", prev_version_hash),
             cereal::make_nvp("root", root)
@@ -85,10 +88,9 @@ FileTree::FileTreeData::FileTreeData(bool initialize) {
     files.push_back(root);
 
     // Construct tree name from current datetime
-    std::time_t rawtime;
     std::tm* timeinfo;
-    std::time(&rawtime);
-    timeinfo = std::localtime(&rawtime);
+    std::time(&construct_time);
+    timeinfo = std::localtime(&construct_time);
     char buffer[80];
     std::strftime(buffer, 80 , Config::GetConfig().treeFilePattern.c_str(), timeinfo);
     tree_name = std::string(buffer);
@@ -106,10 +108,23 @@ FileTree::FileTreeData::FileTreeData(bool initialize) {
     }
 }
 
-void FileTree::FileTreeData::CountScore(std::shared_ptr<FileInfo> file) {
-    // TODO: Counting score according to Config
-    int score = 1;
-    files_to_process.push_back(std::make_pair(file, score));
+void FileTree::FileTreeData::CountScore(std::shared_ptr<FileInfo> file, const Config::Rules& rules) {
+    // Score = time_from_last_backup * priority;
+    int age;
+    if (prev_version_tree_name.empty()) age = 1;
+    else if (file->GetPrevVersionId() == 0) age = construct_time - FileTree::GetHistoryTree(tree_name)->GetPrevTree()->GetConstructTime();
+    else {
+        auto tree = FileTree::GetHistoryTree(tree_name)->GetPrevTree();
+        auto prev_file = tree->GetFileById(file->GetPrevVersionId());
+        while (tree->GetPrevTree() != nullptr && prev_file->GetPrevVersionId() != 0
+            && (prev_file->GetStatus() == UNKNOWN || prev_file->GetStatus() == NOT_UPDATED)
+        ) {
+            tree = tree->GetPrevTree();
+            prev_file = tree->GetFileById(prev_file->GetPrevVersionId());
+        }
+        age = construct_time - tree->GetConstructTime();
+    }
+    files_to_process.push_back(std::make_pair(file, age * rules.priority));
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -176,19 +191,19 @@ std::shared_ptr<FileTree> FileTree::CreateNewTree() {
     return tree;
 }
 
-std::shared_ptr<FileInfo> FileTree::AddDirectory(std::shared_ptr<FileInfo> parent, std::string const& name, file_params params) {
+std::shared_ptr<FileInfo> FileTree::AddDirectory(std::shared_ptr<FileInfo> parent, std::string const& name, const file_params& params) {
 	return data->AddNode(DIR, parent, name, params);
 }
 
-std::shared_ptr<FileInfo> FileTree::AddFile(std::shared_ptr<FileInfo> parent, std::string const& name, file_params params) {
+std::shared_ptr<FileInfo> FileTree::AddFile(std::shared_ptr<FileInfo> parent, std::string const& name, const file_params& params) {
 	return data->AddNode(FILE, parent, name, params);
 }
 
-std::shared_ptr<FileInfo> FileTree::AddSymlink(std::shared_ptr<FileInfo> parent, std::string const& name, file_params params) {
+std::shared_ptr<FileInfo> FileTree::AddSymlink(std::shared_ptr<FileInfo> parent, std::string const& name, const file_params& params) {
 	return data->AddNode(SYMLINK, parent, name, params);
 }
 
-std::shared_ptr<FileInfo> FileTree::FileTreeData::AddNode(file_type type, std::shared_ptr<FileInfo> parent, std::string const& name, file_params params) {
+std::shared_ptr<FileInfo> FileTree::FileTreeData::AddNode(file_type type, std::shared_ptr<FileInfo> parent, std::string const& name, const file_params& params) {
 	if (parent->GetType() != DIR) throw std::invalid_argument("Parent must be dir");
 
     // Test if we want to backup this file
@@ -216,12 +231,16 @@ std::shared_ptr<FileInfo> FileTree::FileTreeData::AddNode(file_type type, std::s
 				// Match only files to files and dirs to dirs (else UNKNOWN)
 				file->SetPrevVersionId(prev_version_file->GetId());
 				auto prev_version_params = prev_version_file->GetParams();
+				auto prev_version_status = prev_version_file->GetStatus();
 				if (type == DIR) {
 					// Check only params
 					status = (params == prev_version_params ? UNCHANGED : UPDATED_PARAMS);
 				} else { // FILE or SYMLINK
-					if (prev_version_params.file_size != params.file_size || prev_version_params.modification_time != params.modification_time)
-                        status = NOT_UPDATED;
+					if (prev_version_params.file_size != params.file_size || prev_version_params.modification_time != params.modification_time
+                    || prev_version_status == UNKNOWN || prev_version_status == NOT_UPDATED)
+                        // If previous file is UNKNOWN (no known previous version and not processed) -> UNKNOWN
+                        // else (if there is at least one known and proccessed previous version) -> NOT_UPDATED
+                        status = prev_version_status == UNKNOWN ? UNKNOWN : NOT_UPDATED;
                     else {
                             status = (params == prev_version_params ? UNCHANGED : UPDATED_PARAMS);
                             // No change to the file content -> same hash and chunk name as the previous
@@ -236,7 +255,7 @@ std::shared_ptr<FileInfo> FileTree::FileTreeData::AddNode(file_type type, std::s
 	file->SetStatus(status);
 
 	// Count score and add file to score-heap
-	if ((type == FILE || type == SYMLINK) && status != UNCHANGED && status != UPDATED_PARAMS) CountScore(file);
+	if ((type == FILE || type == SYMLINK) && status != UNCHANGED && status != UPDATED_PARAMS) CountScore(file, rules);
 
 	return file;
 }
@@ -273,6 +292,7 @@ std::vector<std::shared_ptr<FileInfo>> FileTree::FinishTree() {
 }
 
 const std::string& FileTree::GetTreeName() { return data->tree_name; }
+const time_t FileTree::GetConstructTime() { return data->construct_time; }
 
 void FileTree::SaveTree() {
     std::string temp_name = Config::GetTreeFilename(data->tree_name)+".tmp";

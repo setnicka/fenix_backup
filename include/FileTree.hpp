@@ -22,9 +22,9 @@ class FileTree {
 
 	// Tree nodes functions
 	std::shared_ptr<FileInfo> GetRoot();
-	std::shared_ptr<FileInfo> AddDirectory(std::shared_ptr<FileInfo> parent, std::string const& name, file_params params);
-	std::shared_ptr<FileInfo> AddFile(std::shared_ptr<FileInfo> parent, std::string const& name, file_params params);
-	std::shared_ptr<FileInfo> AddSymlink(std::shared_ptr<FileInfo> parent, std::string const& name, file_params params);
+	std::shared_ptr<FileInfo> AddDirectory(std::shared_ptr<FileInfo> parent, std::string const& name, const file_params& params);
+	std::shared_ptr<FileInfo> AddFile(std::shared_ptr<FileInfo> parent, std::string const& name, const file_params& params);
+	std::shared_ptr<FileInfo> AddSymlink(std::shared_ptr<FileInfo> parent, std::string const& name, const file_params& params);
 
 	std::shared_ptr<FileInfo> GetFileByPath(std::string const& file_path);
 	std::shared_ptr<FileInfo> GetFileByHash(std::string const& file_hash);
@@ -34,6 +34,7 @@ class FileTree {
 
 	// Saving functions
 	const std::string& GetTreeName();
+	const time_t GetConstructTime();
 	void SaveTree();
 	std::shared_ptr<FileTree> GetNextTree();
 	std::shared_ptr<FileTree> GetPrevTree();

@@ -25,6 +25,7 @@ paths: (
         size_at_least: 10
         size_at_most: 10485760
         backup: true
+        priority: 1
       }
     )
   }
