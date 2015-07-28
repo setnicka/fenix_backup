@@ -23,20 +23,19 @@ class FileInfo {
 	FileInfo& operator=(const FileInfo& other);*/
 
     const std::string& GetName();
-	file_type GetType();
-	version_file_status GetVersionStatus();
-	file_params GetParams();
+	const file_params& GetParams();
 	version_file_status GetStatus();
+	file_type GetType();
 	unsigned int GetId();
 	const std::string& GetPath();
 	unsigned int GetPrevVersionId();
 	const std::string& GetHash();
 
-	void SetParams(file_params params);
+	void SetParams(const file_params& params);
 	void SetStatus(version_file_status status);
 	void SetId(unsigned int index);
 	void SetPrevVersionId(unsigned int index);
-	void SetHash(std::string file_hash);
+	void SetHash(const std::string& file_hash);
 
 	std::shared_ptr<FileInfo> GetPrevVersion();
 	std::shared_ptr<FileInfo> GetParent();

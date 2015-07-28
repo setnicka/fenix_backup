@@ -79,7 +79,7 @@ FileChunk::FileChunk(std::string chunk_name, bool load): data{new FileChunkData(
 FileChunk::~FileChunk() {}
 
 // Saving and loading
-void FileChunk::ProcessStringAndSave(std::string ancestor_name, std::string content) {
+void FileChunk::ProcessStringAndSave(const std::string& ancestor_name, const std::string& content) {
     data->ancestor_chunk_name = ancestor_name;
     // 1. Get source to diff against
     std::string source;
@@ -110,12 +110,16 @@ void FileChunk::ProcessStringAndSave(std::string ancestor_name, std::string cont
     if (!ancestor_name.empty()) ancestor->AddDerivedChunk(data->chunk_name);
 }
 
-void FileChunk::ProcessFileAndSave(std::string ancestor_name, std::string source_path) {
-    std::ifstream ifs(source_path, std::ios::binary);
-    if (!ifs.good()) throw FileChunkException("Cannot read file '"+source_path+"'");
-    std::string content((std::istreambuf_iterator<char>(ifs)),
+void FileChunk::ProcessStreamAndSave(const std::string& ancestor_name, std::istream& stream) {
+    std::string content((std::istreambuf_iterator<char>(stream)),
                         (std::istreambuf_iterator<char>()   ));
     ProcessStringAndSave(ancestor_name, content);
+}
+
+void FileChunk::ProcessFileAndSave(const std::string& ancestor_name, const std::string& source_path) {
+    std::ifstream ifs(source_path, std::ios::binary);
+    if (!ifs.good()) throw FileChunkException("Cannot read file '"+source_path+"'");
+    ProcessStreamAndSave(ancestor_name, ifs);
 }
 
 std::string FileChunk::LoadAndReturn() {
@@ -156,7 +160,6 @@ void FileChunk::SkipAncestor() {
     auto ancestor = GetChunk(data->ancestor_chunk_name);
     if (ancestor == nullptr) throw FileChunkException("Cannot load ancestor '"+data->ancestor_chunk_name+"' of the FileChunk '"+data->chunk_name+"'\n");
     std::string new_ancestor_name = ancestor->GetAncestorName();
-    if (GetChunk(new_ancestor_name) == nullptr) throw FileChunkException("Cannot load new ancestor '"+new_ancestor_name+"' for the '"+data->chunk_name+"'\n");
 
     // TODO: Maybe some way to merge VCDIFFs instead of counting new?
     // 2. Get this chunk content, and compute new VCDIFF

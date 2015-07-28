@@ -105,6 +105,7 @@ const std::unordered_map<std::string, std::shared_ptr<FileInfo>>& FileInfo::GetC
 
 std::ostream& FileInfo::GetFileContent(std::ostream& out) {
     if (data->type == DIR) throw FileInfoException("Cannot get content of directory\n");
+    if (data->file_hash.empty()) throw FileInfoException("Cannot get file content of unsaved file\n");
 
     auto chunk = FileChunk::GetChunk(data->file_hash);
     out << chunk->LoadAndReturn();
@@ -117,8 +118,6 @@ void FileInfo::ProcessFileContent(std::istream& file, std::shared_ptr<FileTree> 
     // 1. Count SHA256 hash of the given file
     data->file_hash = Functions::ComputeFileHash(file);
 
-    //data->file_hashes.insert(std::make_pair(file_hash, file_node));
-
     // 2. If UNKNOWN ancestor try to localize it using file_hash
     if (data->version_status == UNKNOWN && tree != nullptr  && tree->GetPrevTree() != nullptr) {
         auto prev_version_node = tree->GetPrevTree()->GetFileByHash(data->file_hash);
@@ -129,7 +128,6 @@ void FileInfo::ProcessFileContent(std::istream& file, std::shared_ptr<FileTree> 
             return;
         }
     }
-
     // If file has the same size and same hash as older file, there were only params updated
     if (tree != nullptr && tree->GetPrevTree() != nullptr && data->prev_version_id != 0) {
             auto prev_version_node = tree->GetPrevTree()->GetFileById(data->prev_version_id);
@@ -142,39 +140,41 @@ void FileInfo::ProcessFileContent(std::istream& file, std::shared_ptr<FileTree> 
             }
     }
 
-    // 3. Compute and save FileChunk
-    //std::string chunk_name = GetTreeName() + "_" + std::to_string(file_node->GetId());
-
     // 3. Test if exists chunk for this file_hash and eventually save it
     if (FileChunk::GetChunk(data->file_hash) == nullptr) {
         FileChunk chunk(data->file_hash);
-        std::string prev_chunk = (data->prev_version_id != 0 ? tree->GetPrevTree()->GetFileById(data->prev_version_id)->GetHash() : "" );
-        std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
-        chunk.ProcessStringAndSave(prev_chunk, content);
-
+        std::string prev_hash = (data->prev_version_id != 0 ? tree->GetPrevTree()->GetFileById(data->prev_version_id)->GetHash() : "" );
+        if (!prev_hash.empty()) {
+            auto current_chunk = FileChunk::GetChunk(prev_hash);
+            // If the depth of chunks is too big, set the root of this chunk "branch" as prev_chunk
+            if (current_chunk == nullptr) prev_hash = "";
+            else if (current_chunk->GetDepth() >= Config::GetConfig().maxChunkDepth) {
+                while (current_chunk != nullptr && current_chunk->GetDepth() != 0) {
+                    prev_hash = current_chunk->GetAncestorName();
+                    current_chunk = FileChunk::GetChunk(prev_hash);
+                }
+            }
+        }
+        chunk.ProcessStreamAndSave(prev_hash, file);
     }
-
-    // 4. Create file chunk
 
     // 4. Update info for this file
     data->version_status = (data->version_status == UNKNOWN ? NEW : UPDATED_FILE);
-
-    //data->file_hashes.insert(std::make_pair(file_hash, file_node));
 }
 
 // Setters
-void FileInfo::SetParams(file_params params) { data->params = params; }
+void FileInfo::SetParams(const file_params& params) { data->params = params; }
 void FileInfo::SetStatus(version_file_status status) { data->version_status = status; }
 void FileInfo::SetId(unsigned int index) { data->file_index = index; }
 void FileInfo::SetPrevVersionId(unsigned int index) { data->prev_version_id = index; }
-void FileInfo::SetHash(std::string file_hash) { data->file_hash = file_hash; }
+void FileInfo::SetHash(const std::string& file_hash) { data->file_hash = file_hash; }
+
 // Getters
+const file_params& FileInfo::GetParams() { return data->params; }
 const std::string& FileInfo::GetName() { return data->name; }
-file_type FileInfo::GetType() { return data->type; }
 version_file_status FileInfo::GetStatus() { return data->version_status; }
-version_file_status FileInfo::GetVersionStatus() { return data->version_status; }
-file_params FileInfo::GetParams() { return data->params; }
 unsigned int FileInfo::GetId() { return data->file_index; }
+file_type FileInfo::GetType() { return data->type; }
 const std::string& FileInfo::GetPath() {
     if (data->path.empty()) {
         auto parent = GetParent();

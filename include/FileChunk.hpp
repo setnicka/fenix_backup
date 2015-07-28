@@ -14,8 +14,9 @@ class FileChunk {
     virtual ~FileChunk();
 
     /// Compute VCDIFF of the file against given ancestor and save it
-    void ProcessStringAndSave(std::string ancestor_name, std::string content);
-    void ProcessFileAndSave(std::string ancestor_name, std::string source_path);
+    void ProcessStringAndSave(const std::string& ancestor_name, const std::string& content);
+    void ProcessStreamAndSave(const std::string& ancestor_name, std::istream& stream);
+    void ProcessFileAndSave(const std::string& ancestor_name, const std::string& source_path);
     /// Return file content
     std::string LoadAndReturn();
     void LoadAndExtract(std::string target_path);

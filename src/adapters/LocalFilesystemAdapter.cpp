@@ -137,6 +137,8 @@ void LocalFilesystemAdapter::RestoreFileToLocalPath(std::shared_ptr<FileInfo> fi
 
     // 2. Restore original content
     if (mode != ONLY_PERMISSIONS) {
+        if (file->GetType() != DIR && file->GetHash().empty()) return;
+
         if (file->GetType() == DIR) {
             if (!boost::filesystem::exists(final_path)) {
                 if (!boost::filesystem::create_directory(final_path)) throw AdapterException("Cannot create directory '"+final_path.string()+"'");
