@@ -179,6 +179,7 @@ const std::string& FileInfo::GetPath() {
     if (data->path.empty()) {
         auto parent = GetParent();
         if (parent != nullptr) data->path = parent->GetPath() + "/" + GetName();
+        else data->path = ".";
     }
     return data->path;
 }

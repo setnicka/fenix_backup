@@ -54,25 +54,23 @@ void Config::Dir::SetRules(Config::Dir::RulesInternal rules) { this->dir_rules =
 void Config::Dir::AddRules(Config::Dir::RulesFilter filter, Config::Dir::RulesInternal rules) { file_rules.push_back(std::make_pair(filter, rules)); }
 
 std::shared_ptr<Config::Dir> Config::Dir::GetDirByPath(const std::string& path, bool create) {
-    // 1. Normalize path
     size_t start = 0; size_t len = path.length();
-    // Remove '/' from both ends
-    if (len > 0 && path[start] == '/') start++;
-    if (len > 0 && path[len-1] == '/') len--;
-
-    // 2. Basics
-    if (len == 0) return root_rules;
-
-    // 3. Recursive search
     auto dir = root_rules;
     auto pos = path.find('/', start);
-    while (pos != std::string::npos && pos < len) {
-        dir = dir->GetSubdir(path.substr(start, pos - start), create);
-        if (dir == nullptr) return nullptr;
+
+    // Recursive search
+    while (pos != std::string::npos) {
+        // If directory name is "/" (in cases like "dir//subdir") or "./", move start and ask again
+        if (pos - start > 0 && !(pos - start == 1 && path[start] == '.')) {
+            dir = dir->GetSubdir(path.substr(start, pos - start), create);
+            if (dir == nullptr) return nullptr;
+        }
         start = pos + 1;
         pos = path.find('/', start);
     }
-    return dir->GetSubdir(path.substr(start, len - start), create);
+    // If there is rest of the name, try to use it as subdir name, else return this dir
+    if (len - start > 0) return dir->GetSubdir(path.substr(start, len - start), create);
+    else return dir;
 }
 
 /// Return subdir (and create it, if it doesnt exists)
@@ -134,8 +132,16 @@ bool Config::Dir::RulesFilterTest(const Config::Dir::RulesFilter& filter, const 
 }
 
 void Config::Dir::Apply(const std::string& path, const file_params& params, Config::Rules& rules) {
+    if ((path.length() >= 2 && path[0] == '.' && path[1] == '/')
+    || (path.length() >= 1 && path[0] == '/')) {
+        Apply(path.substr(2), params, rules);
+        return;
+    }
+
     // 1. Apply my rules, if there is any
     ApplyRules(dir_rules, rules);
+    // End if the path was only "."
+    if (path.length() == 1 && path[0] == '.') return;
 
     // 2. Try each file_rule if it matches
     if (!path.empty()) {
@@ -220,21 +226,14 @@ void Config::Load(std::string filename) {
 }
 
 const Config::Rules Config::GetRules(const std::string& path, const file_params& params) {
-    Rules rules;
-
     // Let all dirs on the path modify the rules
     // Start asking the root dir
-
-    // If starting with '/' remove it before asking root_rules
-    if (!path.empty() && path[0] == '/') root_rules->Apply(path.substr(1), params, rules);
-    else root_rules->Apply(path, params, rules);
-
+    Rules rules;
+    root_rules->Apply(path, params, rules);
     return rules;
 }
 
-const ConfigData& Config::GetConfig() {
-    return data;
-}
+const ConfigData& Config::GetConfig() { return data; }
 
 const std::string Config::GetTreeDir() {
     if (!loaded) throw ConfigException("No loaded config file!\n");
