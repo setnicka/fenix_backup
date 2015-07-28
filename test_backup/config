@@ -1,4 +1,5 @@
-baseDir="./test_backup"
+baseDir: "./test_backup"
+maxChunkDepth: 2
 
 adapter: {
   type: "local_filesystem"

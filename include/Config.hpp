@@ -21,6 +21,8 @@ struct ConfigData {
 
     std::string chunkMetaExtension = ".meta";
     std::string chunkDataExtension = ".data";
+
+    int maxChunkDepth = 10;
 };
 
 class Config {

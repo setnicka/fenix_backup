@@ -186,6 +186,7 @@ void Config::Load(std::string filename) {
     config_file.lookupValue("treeSubdir", data.treeSubdir);
     config_file.lookupValue("dataSubdir", data.dataSubdir);
     config_file.lookupValue("tempSubdir", data.tempSubdir);
+    config_file.lookupValue("maxChunkDepth", data.maxChunkDepth);
 
     // 3. Create root_rules
     root_rules = std::make_shared<Dir>();
