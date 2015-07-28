@@ -1,0 +1,257 @@
+\chapter{Implementace zálohovacího systému FenixBackup}
+
+Zálohovací systém je napsaný v jazyce \Cpp, konkrétně podle specifikace
+\Cpp11. Vyvíjen byl na platformě operačního systému Linux a je optimalizován
+pro jeho systém práv a parametrů souborového systému, ale měl by fungovat na
+všech hlavních platformách.
+
+\section{Obecné návrhové vzory}
+
+\newacronym{PIMPL}{PIMPL}{Návrhový idiom \uv{private implementation} pokoušející
+se skrýt co nejvíce implementace před vnějším světem}
+
+Při implementaci jsem se držel snahy mít v hlavičkových souborech tříd co možná
+nejméně položek nepotřebných jako rozhraní pro komunikaci s ostatními třídami.
+Většina privátních proměnných a funkcí je tedy (podle \gls{PIMPL} idiomu)
+zapouzdřena uvnitř vnořených tříd
+
+Důvodem pro tuto snahu je za prvé přehlednost hlavičkových souborů a za druhé
+odstranění potřeby překompilování všech souborů, které daný hlavičkový soubor
+includují při změně v privátní metodě.
+
+Dále se v celém systému hojně používají chytré pointery zavedené v \Cpp11,
+které na mnoha místech zjednodušují zacházení s instancemi tříd, pokud si na ně
+potřebujeme držet odkaz z více míst zároveň.
+
+Vše bydlí ve jmenném prostoru {\it FenixBackup}.
+
+\section{Přehled tříd a jejich funkce}
+
+V minulé části jsme si nastínili schéma stromečků reprezentujících jednotlivé
+zálohy a držící informace o souborech, a schéma datových bloků.
+
+Souborové stromečky jsou představovány třídou {\it FileTree} a obsahují většinu
+logiky související se zálohováním souborů. V jednotlivých jeho uzlech pak bydlí
+instance třídy {\it FileInfo}, jež si drží informace vždy o jedné složce,
+normálním souboru nebo symlinku. V případě složky si pamatují pointery na v ní
+obsažené soubory, jinak si pamatují hash obsahu.
+
+Hashe obsahu odkazují na instance třídy {\it FileChunk}, které již drží finální
+data. To je vždy \gls{VCDIFF} oproti prázdnému souboru, nebo jinému souboru
+reprezentovanému instancí třídy {\it FileChunk}.
+
+\subsection{FileTree}
+
+Hlavní logika jádra zálohovacího systému je soustředěna do třídy {\it FileTree},
+jež obsahuje tři metody pro registraci položek do souborového stromu:
+
+\begin{itemize}
+	\item\texttt{AddDirectory(rodic, jmeno\_souboru, parametry)}
+	\item\texttt{AddFile(rodic, jmeno\_souboru, parametry)}
+	\item\texttt{AddSymlink(rodic, jmeno\_souboru, parametry)}
+\end{itemize}
+
+Každá z těchto metod vrací odkaz na nově přidanou položku (který se pak třeba
+v případě složky dá využít pro přidání položek do ní), nebo \texttt{nullptr},
+pokud daná věc nemá být uložena ve stromě souborů (a tedy nemá například smysl
+procházet podstrom souborů pod touto složkou).
+
+Dále obsahuje třída {\it FileTree} metodu pro vrácení seznamu souborů, které si
+zálohovací systém přeje dodat (setříděného podle důležitosti) a několik
+pomocných metod pro uložení stromu, vrácení kořenu celého stromu kvůli předání
+první vrstvě položek jako rodiče aj.):
+
+\begin{itemize}
+	\item\texttt{FinishTree()} $\rightarrow$ vektor odkazů na položky stromu
+	\item\texttt{GetRoot()} $\rightarrow$ odkaz na {\it FileInfo}
+	reprezentující kořen
+\end{itemize}
+
+Nakonec třída obsahuje statické metody pro načtení stromu konkrétního jména
+z úložiště (ta vrací odkaz na strom nebo \texttt{nullptr}) a pro vrácení seznamu
+všech stromů v úložišti.
+
+\subsection{FileInfo}
+
+Hlavním úkolem této třídy je držet si informace o jednom souboru, složce či
+symlinku, o kterých si ve všech případech drží parametry jako jsou práva, čas
+poslední modifikace a podobně. V případě složky navíc obsahuje vektor obsažených
+souborů, v ostatních případech pak hash odkazující na příslušný datový blok.
+
+Mezi základní metody patří metody pro zpracování obsahu souboru nebo jeho
+vrácení. Jako nepovinný parametr mohou dostat odkaz na aktuálně konstruovaný
+strom souborů a pomocí něj vyhledávat soubory se stejným hashem v minulé verzi
+stromu:
+
+\begin{itemize}
+	\item\texttt{ProcessFileContent(inputstream, strom = nullptr)}
+	\item\texttt{GetFileContent(outputstream)} $\rightarrow$
+	\texttt{outputstream} (vrácení umožňuje použití v syntaxi \texttt{<\relax<} streamů)
+\end{itemize}
+
+Další důležité metody jsou následující tři sloužící pro správu obsahu složek.
+Zbytek veřejných metod jsou pak buď settery nebo gettery na vlastnosti souboru:
+
+\begin{itemize}
+	\item\texttt{AddChild(jmeno, odkaz\_na\_instanci\_FileInfo)}
+	\item\texttt{GetChild(jmeno)} $\rightarrow$ odkaz na instanci {\it FileInfo}
+	\item\texttt{GetChilds()} $\rightarrow$ odkaz na asociativní pole odkazů
+	na {\it FileInfo}
+\end{itemize}
+
+\subsection{Ostatní třídy}
+
+Třída {\it FileChunk} představuje jednotlivé datové bloky. Každá instance třídy
+si záznam, jestli je odvozená jako rozdíl od jiné instance, nebo jestli je
+takzvaně na \uv{nulté úrovni} a na ničme nezávisí.
+
+Dále existuje třída představující konfiguraci {\it Config}, která vrací
+jednotlivé položky načtené konfigurace a pak řeší dotazy na pravidla pro
+jednotlivé zálohované soubory (opět podle načtené konfigurace).
+
+Pro komunikaci s adaptéry je pak definována abstraktní třída {\it Adapter}
+obsahující metody pro proskenování a vytvoření souborového stromu, pro
+zpracování obsahu souboru a pro obnovení souboru na původní, nebo na zadané
+místo.
+
+\section{Externí knihovny}
+
+Zálohovací systém využívá několik externích knihoven a to pro zpracování
+konfiguračních souborů, pro serializaci dat, pro počítání \gls{SHA256} hashů
+\gls{VCDIFF} rozdílů souborů a pro práci se souborovým systémem.
+
+Důvody pro použití externích knihoven jsou hlavně dva: Pokud existuje fungující
+a efektivní řešení daného problému, není potřeba \uv{znovu vynalézat kolo}, a za
+druhé, na mnohá z těchto řešení mohou být uživatelé zvyklí (například konfigurace)
+a použití známých komponent usnadní uživatelům používání.
+
+\subsection*{Konfigurace -- libconfig}
+
+Byla použita mezi mnoha projekty rozšířená a přizpůsobivá knihovna
+\texttt{libconfig}\footnote{\url{http://www.hyperrealm.com/libconfig/}}. Důvodem
+pro její volbu je velká rozšířenost mezi C a \Cpp projekty a tedy její známost
+mezi uživateli. Program potřebuje být slinkován s knihovnou
+\texttt{libconfig++}.
+
+\subsection*{Serializace dat -- Cereal}
+
+Pro serializaci instancí tříd {\it FileTree} (s navázanými instancemi třídy
+{\it FileInfo}) a {\it FileChunk} se používá serializační knihovna {\it Cereal}%
+\footnote{\url{http://uscilab.github.io/cereal/index.html}}, což je projekt
+vzniklý cíleně pro \Cpp11 a novější využívající vlastností chytrých
+pointerů pro serializaci složitých datových struktur.
+
+Sídlí čistě v hlavičkových souborech přiložených společně s projektem, takže
+není nutné cokoliv dynamicky linkovat.
+
+\subsection*{Hashe a rozdíly -- sha256.h a open-vcdiff}
+
+Pro počítání \gls{SHA256} je použita část hashovací knihovny, kterou napsal
+Stephan Brumme\footnote{\url{http://create.stephan-brumme.com/hash-library/}},
+sídlí jen v hlavičkových souborech, tedy se opět nic dynamicky nelinkuje.
+
+Pro vytváření a zpracování binárních rozdílů souborů je použita\gls{VCDIFF}
+implementace \texttt{open-vcdiff}\footnote{\url{https://code.google.com/p/open-vcdiff/}},
+která vyžaduje slinkování s externími knihovnami \texttt{libvcdcom}, \texttt{libvcdenc}
+a \texttt{libvcddec}.
+
+\subsection*{Souborový systém -- boost::filesystem}
+
+Na místech interagujících nějakým složitějším způsobem se souborovým systémem
+byla použita implementace souborového systému z \Cpp projektu \texttt{boost}%
+\footnote{\url{http://www.boost.org/doc/libs/1_46_0/libs/filesystem/v3/doc/index.htm}}.
+Poskytuje na platformě nezávislé rozhraní a při případném použití zálohovacího
+systému na jiné platformě, než na které byl vyvinut, by tak neměla nastat žádné
+významné problémy. Pro běh musí být program slinkován s knihovnami
+\texttt{libboost\_system} a \texttt{libboost\_filesystem}.
+
+\section{Ukládání dat}
+
+Souborové stromy a datové bloky jsou ukládány na oddělená místa. Každý souborový
+strom, stejně jako popis datového bloku, sídlí v samostatném souboru na disku.
+Soubory jsou ukládány v binárním formátu. Ke každé serializované instanci třídy
+{\it FileChunk} je ještě připojen blok dat ve formátu \gls{VCDIFF} popisující
+rozdíl oproti prázdnému souboru, nebo oproti nějakému jinému uloženému datovému
+bloku.
+
+Formát uložení dat určuje serializační knihovna {\it Cereal} (která podporuje
+více druhů serializačních archivů, zálohovací systém využívá binárního formátu
+zápisu dat). Formát dat je explicitně verzovaný, což dovoluje do budoucna
+přidávat či ubírat položky se zachováním zpětné kompatibility.
+
+Cereal dovoluje pojmenovávat ukládané položky, což se využívá při výstupu v
+lidsky čitelných formátech typu JSON nebo XML (toho bylo využíváno při vývoji),
+ale v binárním formátu jsou za sebe serializovaná jen samotná binární data. Pokud
+je serializován chytrý pointer na objektu, je nejdříve uveden čtyřbytový
+identifikátor typu objektu a pak buď serializovaná data objektu, nebo čtyřbytové
+pořadové číslo již použitého chytrého pointeru na tento typ objektu.
+
+Každému archivu předchází hlavička a čtyřbytové číslo verze, níže následují
+seřazené tabulky položek pro obě serializované třídy. S jejich znalostí je možné
+snadno pomoci jakékoliv verze knihovny Cereal získat původní data i bez
+zálohovacího systému
+
+\subsection{Formát dat třídy FileTree}
+
+\begin{tabular}{l >{\tt}l}
+\bf Položka & \bf datový typ \\
+\hline
+Název stromu & std::string \\
+Čas vytvoření & time\_t \\
+Název předchozího stromu & std::string \\
+SHA256 hash předchozího stromu & std::string \\
+Odkaz na kořen stromu & std::shared\_ptr<FileInfo> \\
+\end{tabular}
+
+\subsection{Formát dat třídy FileInfo}
+
+\begin{tabular}{l >{\tt}p{7cm}}
+\bf Položka & \bf datový typ \\
+\hline
+Jméno souboru & std::string \\
+Typ souboru & enum\{DIR, FILE, SYMLINK\}\\
+Stav verzování & enum\{UNKNOWN, NEW, UNCHANGED, UPDATED\_PARAMS, UPDATED\_FILE, NOT\_UPDATED\} \\
+Parametry & struct file\_params \\
+Index souboru & uint32\_t \\
+Index minulé verze souboru & uint32\_t \\
+Odkaz na rodiče & std::shared\_ptr<FileInfo> \\
+Hash souboru & std::string \\
+Asociativní pole synů & std::unordered\_map<std::string, std::shared\_ptr<FileInfo>\relax> \\
+\end{tabular}
+
+\subsection{Formát dat struktury file\_params}
+
+\begin{tabular}{l >{\tt}l}
+\bf Položka & \bf datový typ \\
+\hline
+Číslo zařízení & dev\_t \\
+Číslo inode & ino\_t \\
+Souborová práva & mode\_t \\
+UID vlastníka & uid\_t \\
+GID skupiny & gid\_t \\
+Velikost souboru & size\_t \\
+Čas modifikace (sekundy) & timespec.tv\_sec \\
+Čas modifikace (nanosekundy) & timespec.tv\_nsec \\
+\end{tabular}
+
+\subsection{Formát dat třídy FileChunk}
+
+\begin{tabular}{l >{\tt}l}
+\bf Položka & \bf datový typ \\
+\hline
+Název (hash) & std::string \\
+Název (hash) předchůdce & std::string \\
+Hloubka zanoření & int \\
+Velikost dat & size\_t \\
+Závislé instance & std::vector<std::string> \\
+\end{tabular}
+
+\subsection{Postup uložení nové verze souboru}
+
+
+
+\section{Obnova dat}
+
+TODO (nejdříve smazat a pak až obnovit - hardlinky)
+
+\section{Mazání uložených dat -- uvolňování místa}
