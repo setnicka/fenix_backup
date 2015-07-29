@@ -4,6 +4,7 @@
 #include "FileTree.hpp"
 #include "FileChunk.hpp"
 #include "FenixExceptions.hpp"
+#include "BackupCleaner.hpp"
 
 #include <cereal/types/memory.hpp>
 #include <cereal/types/polymorphic.hpp>
@@ -39,45 +40,22 @@ int main() {
                 std::cout << "Processing file " << file->GetPath() << std::endl;
                 adapter->GetAndProcess(file);
         }
+        std::cout << "Saving tree" << std::endl;
         tree->SaveTree();
 
+        FenixBackup::BackupCleaner cleaner;
+        cleaner.LoadData();
 
-        adapter->RestoreSubtreeToLocalPath(tree->GetRoot(), "/tmp/pokus");
+        //std::cout << "Restoring data" << std::endl;
+        //adapter->RestoreSubtreeToLocalPath(tree->GetRoot(), "/tmp/pokus");
 
-
-        //FenixBackup::file_params params = {};
-        //params.file_size = 12;
-        //auto f1 = tree->AddFile(tree->GetRoot(), "souborB.txt", params);
-        //auto d1 = tree->AddDirectory(tree->GetRoot(), "slozka", params);
-        //auto f2 = tree->AddFile(d1, "souborAA.txt", params);
-        //auto f3 = tree->AddFile(d1, "souborAAAA.txt", params);
-
-        //tree->SaveTree();
-
-        //istringstream ss("ABCDEFGAAAAAABBBBAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
-        //ifstream ifs;
-        //ifs.open("/home/jirka/bc_FenixBackup/test/config");
-        //tree->ProcessFileContent(f1, ss);
-
-
-
-        //tree->GetFileContent(f1, cout);
-
-        //auto chunk = FenixBackup::FileChunk::GetChunk("2015-06-29_225718_1");
-        //if (chunk) chunk->DeleteChunk();
+        //FenixBackup::LocalFilesystemAdapter adapter2("2015-07-29_072741");
+        //adapter2.RestoreSubtreeToLocalPath(adapter2.GetTree()->GetRoot(), "/tmp/pokus2");
 
 	} catch(FenixBackup::FenixException &ex) {
 		cerr << ex.what();
 		return(EXIT_FAILURE);
 	}
-
-    /*std::ofstream os("test.test");
-    cereal::JSONOutputArchive archive(os);
-
-    auto FI = make_shared<FenixBackup::FileInfo>();
-    FenixBackup::FileInfo FI2;
-
-    archive(FI);*/
 
 	return(EXIT_SUCCESS);
 }
