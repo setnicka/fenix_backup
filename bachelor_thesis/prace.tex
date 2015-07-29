@@ -258,8 +258,9 @@ the system could follow.
 %%% na začátku práce, místo na jejím konci.
 
 \openright
+\pagestyle{empty}
 \tableofcontents
-\thispagestyle{empty}
+\addtocontents{toc}{\protect\thispagestyle{empty}} % HACK
 
 \newpage
 \setcounter{page}{1}
@@ -271,6 +272,7 @@ the system could follow.
 \include{kap1}
 \include{kap2}
 \include{kap3}
+\include{kap4}
 
 \include{zaver}
 

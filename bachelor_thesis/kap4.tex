@@ -210,7 +210,7 @@ Odkaz na kořen stromu & std::shared\_ptr<FileInfo> \\
 \hline
 Jméno souboru & std::string \\
 Typ souboru & enum\{DIR, FILE, SYMLINK\}\\
-Stav verzování & enum\{UNKNOWN, NEW, UNCHANGED, UPDATED\_PARAMS, UPDATED\_FILE, NOT\_UPDATED\} \\
+Stav verzování & enum\{UNKNOWN, NEW, UNCHANGED, UPDATED\_PARAMS, UPDATED\_FILE, NOT\_UPDATED, DELETED\} \\
 Parametry & struct file\_params \\
 Index souboru & uint32\_t \\
 Index minulé verze souboru & uint32\_t \\
@@ -246,12 +246,121 @@ Velikost dat & size\_t \\
 Závislé instance & std::vector<std::string> \\
 \end{tabular}
 
-\subsection{Postup uložení nové verze souboru}
+\section{Postup uložení nové verze souboru}
 
+Prvním krokem je vždy obstarání si stromu souborů, neboli instance třídy
+{\it FileTree}. Většinou si vyrobíme aktuální ze současného stavu zálohovaných
+dat pomocí vhodného adaptéru, ale je možné vzít i starší instanci třídy
+{\it FileTree} a modifikovat tu (je pak ale nutné počítat s tím, že nebudou
+souhlasit kontrolní součty v navazujících instancích {\it FileTree}).
 
+\newpage
+
+\subsection{Záznam do stromu souborů a hledání minulé verze}
+
+Pokud si strom souborů vyrábíme, tak v nějakou chvíli dojde k přidání námi
+sledovaného souboru (voláním jedné z metod třídy {\it FileTree}). Přitom proběhne
+následující posloupnost operací:
+\begin{enumerate}
+	\item Obstarají se pravidla pro tento soubor (od třídy {\it Config})
+	a případně se ukončí zpracování, pokud se soubor nemá zálohovat.
+	\item Vytvoří se nová instance {\it FileInfo} a přidá se odkaz do rodiče.
+	\item Uloží se známé parametry souboru (vlastník, velikost, čas modifikace)
+	\item Pokud je znám minulý strom: Systém se pokusí nalézt soubor se
+	stejnou cestou (dotazem na svého rodiče, jestli zná svůj starší
+	ekvivalent, a z něj jedním dotazem na jméno souboru). Pokud není nalezen,
+	je nastaven stav \texttt{UNKNOWN} a zpracování se ukončí.
+	\item Pokud nebyla poslední verze zpracována, i když se změnila (status
+	\texttt{UNKNOWN}, \texttt{NOT\_UPDATED} nebo \texttt{DELETED}), nastav
+	stejný stav (mimo \texttt{DELETED}, v tom případě nastav
+	\texttt{NOT\_UPDATED}) a skonči.
+	\item Pokud je nalezený soubor stejného typu, velikosti, času modifikace
+	a parametrů $\rightarrow$ status \texttt{UNCHANGED} a přiřadí se stejný hash
+	(odkazující na stejný datový blok).
+	\item Pokud je nalezený soubor stejného typu, velikosti, času modifikace,
+	ale liší se v parametrech $\rightarrow$ status \texttt{UPDATED\_STATUS}
+	a přiřadí se stejný hash (odkazující na stejný datový blok).
+	\item Jinak přiřaď status \texttt{NOT\_UPDATED}.
+\end{enumerate}
+
+Pokud soubor skončí ve stavu \texttt{NOT\_UPDATED} nebo \texttt{UNKNOWN}, přidá
+se do seznamu souborů k obstarání a spočítá se pro něj skóre důležitosti, jak
+již bylo ukázáno.
+
+\subsection{Zpracování obsahu souboru}
+
+Pokud se zálohovací systém rozhodne, že má zájem o obsah souboru, tak ho adaptér
+nějakým způsobem obstará a poté voláním metody na třídě {\it FileInfo} předá
+tomuto záznamu obsah souboru.
+
+Nedjříve se spočítá \gls{SHA256} hash a pokud není známá minulá verze souboru,
+porovná se, jestli neexistuje v minulém stromě soubor se stejným hashem. Pokud
+ano, přiřadí se jako minulá verze, k souboru se uloží hash a skončí se, protože
+není nutné obsah dále zpracovávat (takto systém pozná přesuny souborů).
+
+Pokud toto neuspěje, je potřeba obsah souboru uložit. Nedjříve systém prozkoumá,
+jestli již nemá uložen soubor se stejným hashem (tedy pokud zachováme důvěru
+v kryptografickou hashovací funkci, tak i se stejným obsahem) a pokud ano, není
+nutné nic nového ukládat a použijeme tento uložený datový blok.
+
+Pokud stejný datový blok neexistuje, tak systém vytvoří novou instanci třídy
+{\it FileChunk} reprezentující soubor s tímto hashem a nechá ji zpracovat obsah.
+Pokud je znám předek, tak se zkusí vytvořit \gls{VCDIFF} oproti poslední verzi
+(získají se data této poslední verze a udělá se rozdíl mezi nimi), jinak se dělá
+rozdíl oproti prázdnému souboru.
+
+Pokud by byl při vytváření rozdílu vůči starší verzi překročen limit na maximální
+hloubku na sebe navazujících rozdílů, tak se vytvoří rozdíl oproti první známé
+verzi souboru (tedy oproti kořeni, který sám vznikl rozdílem oproti prázdnému
+souboru), čímž se opět dosáhne nižší hloubky.
+
+Alternativou by bylo vytvářet novou kompletní kopii takového souboru, ale rozdíl
+oproti nějaké základní verzi zabere nejvýše tolik místa, kolik by zabral rozdíl
+oproti prázdnému souboru. Takže toto řešení je nejméně stejně dobré, jako řešení
+s vyráběním nových záznamů s o jedna nižší maximální hloubkou.
 
 \section{Obnova dat}
 
-TODO (nejdříve smazat a pak až obnovit - hardlinky)
+Při obnově dat se dá zvolit několik strategií. Vždy se zvolí konkrétní záloha
+(konkrétní strom), ze kterého nás zajímají daná data, a jádro zálohovacího
+systému pak poskytuje podporu pro:
+\begin{itemize}
+	\item Obnovu jednoho konkrétního souboru nebo celého podstromu
+	\item Obnovu do původního místa, do jiného místa na původním (vzdáleném)
+	stroji a do jiného místa v lokálním souborovém systému
+	\item Obnovu pouze dat souboru, pouze parametrů souboru, nebo všeho
+\end{itemize}
+
+Navíc se dá specifikovat taktika, co se má dělat, pokud v aktuálním stromu není
+soubor dostupný, určuje se podle dalšího parametru předávaného obnovovacím
+funkcím. Výchozí chování je to, že v takovém případě se pokusí systém nalézt
+nejnovější zálohovanou verzi souboru a obnoví tu (zde si můžeme všimnout, že
+starší verzi má smysl hledat jen u souborů označených jako
+\texttt{NOT\_UPDATED}, u souborů označených \texttt{UNKNOWN} ne). Alterantivním
+chováním je obnova pouze těch dat, která jsou odkazovaná aktuálním stromem
+(neuložené soubory jsou přeskakovány).
+
+Při obnovování je navíc potřeba dát pozor na hardlinky vedoucí mimo obnovovanou
+oblast. V takovém případě by se mohlo stát, že se obnovením nějakého souboru
+přes hardlink projeví změna i na úplně jiném místě, což pravděpodobně není
+požadovaný cíl. Zálohovací systém tedy přijal taktiku nejdříve obnovovaný soubor
+celý smazat (tím se zruší případné provázání hardlinkem) a pak na stejném místě
+vytvořit znovu.
+
+\subsection{Postup získání obsahu souboru}
+
+Obnova jednoho souboru začíná dotazem na jeho typ -- pokud to je složka, tak
+jsou všechny potřebné informace uložené již ve stromě souborů a není nutné
+získávat jakákoliv data z datových bloků. Pokud to není složka, tak se přes
+třídu {\it FileInfo} dostane žádost o obnovení dat až na datový blok
+reprezentující danou verzi souboru.
+
+Pokud se datový blok (uložený ve formátu \gls{VCDIFF}) neodkazuje na žádný jiný,
+je jeho obsah přímo obnoven jako diff od prázdného souboru a vrácen. Pokud se
+odkazuje na jiný datový blok, je nejdříve dotazem na tento blok (rekurzivně)
+získán jeho obsah, proti kterému je pak aplikováním rozdílu vyroben obsah tohoto
+datového bloku a ten je vrácen.
 
 \section{Mazání uložených dat -- uvolňování místa}
+
+TODO

@@ -6,7 +6,7 @@ je docela trefná paralela obnově zálohovaných dat, když nás potká nějak�
 nešťastná událost.
 
 Nyní se pokusíme představit si hlavní myšlenky, na kterých FenixBackup staví,
-a ukázat jeho použití.
+a základní principy jeho fungování.
 
 \section{Základní přehled}
 
@@ -39,69 +39,12 @@ získají z lokálního filesystému, stáhnout přes \gls{SSHFS}, nebo bude pro
 komunikace přes rsync protokol, by mělo být samotnému jádru zálohovacího
 systému jedno.
 
-\section{Konfigurace}
+\section{Pravidla konfigurace}
 
-Konfigurační soubor se vztahuje vždy k jednomu zálohovanému stroji a obsahuje
-tři části. První specifikuje úložiště zálohovaných dat, druhá z nich popisuje
-způsob připojení k zálohovanému stroji -- volba adaptéru a parametry pro něj
-(například cesta v rámci lokálního souborového systému, nebo adresu a port
-stroje, na který se připojit) a poslední a nejobsáhlejší nakonec popisuje
-zálohovací pravidla pro jednotlivé soubory.
-
-\subsection*{Ukázková konfigurace}
-
-Konfigurace pro zápis používá v mnoha projektech rozšířený zápis poskytovaný
-knihovnou {\it libconfig}.%
-\footnote{http://www.hyperrealm.com/libconfig/libconfig\_manual.html}
-Ukázka je připojena níže:
-
-\begin{verbatim}
-baseDir: "./backup_dir"
-dataSubdir: "data"
-
-adapter: {
-  type: "local_filesystem"
-  path: "/home/jirka/fenix_backup"
-}
-
-paths: (
-  { path: "/"
-    file_rules: (
-      @include "no_exe.config"
-    )
-  },
-  { path: "/.git"
-    scan: false
-  },
-  { path: "/test_backup/"
-    scan: true
-    file_rules: (
-      { backup: false },
-      { regex: ".*\.fenixtree"
-        size_at_least: 10
-        size_at_most: 10485760
-        backup: true
-      }
-    )
-  }
-)
-
-# Obsah souboru no_exe.config:
-{ regex: ".*\.exe"
-  backup: false
-}
-\end{verbatim}
-
-První položka \texttt{baseDir} je povinná a popisuje, kam přesně má zálohovací
-systém ukládat svá data. Pak lze volitelně modifikovat názvy podsložek na
-ukládání dat souborů a souborových stromečků (\texttt{dataSubdir}
-a \texttt{treeSubdir}).
-
-Druhá položka \texttt{adapter} specifikuje způsob získávání zálohovaných dat.
-V první řadě je specifikováno, který adaptér se má použít, a zbytek položek je
-pak předán tomuto adaptéru jako jeho nastavení.
-
-Poslední části konfigurace se budeme věnovat v navazující podkapitole.
+Zásadní částí dobře fungujícího zálohovacího systému je dobře fungující
+a konfigurovatelný systém pravidel zálohování. Zápis pravidel do konfiguračního
+souboru je ukázán v kapitole vztahující se k uživatelské dokumentaci, zde se
+pokusíme rozebrat obecné fungování pravidel.
 
 \subsection{Zálohovací pravidla určená podle cest}
 
@@ -109,10 +52,6 @@ Pravidla je možné specifikovat pro jakoukoliv cestu v zálohovaných datech
 (kořenová složka zálohy je označována pomocí lomítka: \texttt{/}) a stejnou
 cestu je možné uvést i vícekrát -- v takovém případě platí pro tuto cestu
 poslední specifikovaná pravidla.
-
-Protože je velmi časté používat společná zálohovací pravidla pro více strojů,
-dají se tato společná pravidla sdružit do společných souborů a ty pomocí
-direktivy \texttt{@include} v konfiguraci používat opakovaně na více místech.
 
 Pokud pro nějakou cestu nejsou specifikována pravidla (v reálném případě to bude
 pravděpodobně většina cest), použijí se pro ní nejbližší vyšší pravidla po cestě
@@ -162,7 +101,7 @@ přepsány všechny parametry zálohování, které pravidlo nastavuje).
 
 \medskip\goodbreak
 
-\noindent Při dotazu na konkrétní soubor se parametry pravidel pak určí takto:
+\noindent Při dotazu na konkrétní soubor se pak parametry pravidel určí takto:
 \begin{enumerate}
 	\item Vezmou se defaultní hodnoty pravidel a začne se v kořenové složce.
 	\item V aktuální složce se nejdříve aplikují pravidla složky (pokud
@@ -170,20 +109,13 @@ přepsány všechny parametry zálohování, které pravidlo nastavuje).
 	\item Pokud vyhovuje filtr u pravidla pro soubory, aplikuje se.
 	\item Pokud se dá po zadané cestě sestoupit ještě o úroveň níže, sestoupí
 	se a opakuje se znovu od bodu 2.
-	\item Nakonec se vrátí finální pravidla vzniklá aplikací všech pravidel,
-	přes která se prošlo.
 \end{enumerate}
 
-\section{Použití z příkazové řádky}
-
-FenixBackup je psaný primárně pro spouštění příkazů z příkazové řádky s cílem
-umožnit snadné plánování akcí třeba pomocí \texttt{cron}u.
-
-Základem je spuštění příkazu \texttt{fenix}, kterému se vždy předá cesta ke
-konfiguračnímu souboru a poté příkaz, který chceme provést. Inspirací pro
-rozhraní bylo zčásti rozhraní verzovacího systému Git (viz \cite{progit}).
-
-TODO
+Nakonec se vrátí finální pravidla vzniklá aplikací všech pravidel, přes která se
+prošlo. Toto řešení nabízí velmi silné možnosti konfigurace, bohužel cacheování
+výsledků je zde vzhledem k pravidlům s filtry značně obtížné, pro běžně velké
+konfigurační soubory by ale rychlost i tak měla být dostatečná a úzkým hrdlem
+zde stále bude rychlost načítání dat z disku.
 
 \section{Model ukládání dat}
 
@@ -236,6 +168,8 @@ následujících stavů:
 	se změnil i obsah, a jenž ještě nemáme uložený.
 	\item\texttt{UPDATED\_FILE} -- Soubor se známou minulou verzí, u kterého
 	se změnil i obsah, a jenž již máme uložený a zpracovaný.
+	\item\texttt{DELETED} -- Soubor byl z nějakého důvodu vymazán (ať už na
+	přímé přání uživatele, nebo automaticky při uvolňování místa).
 \end{itemize}
 
 \section{Adaptéry pro přístup k zálohovaným datům}
