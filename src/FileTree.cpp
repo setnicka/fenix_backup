@@ -33,6 +33,7 @@ class FileTree::FileTreeData {
     // Cache - not serialized
 	std::vector<std::shared_ptr<FileInfo>> files;
 	std::unordered_map<std::string, std::shared_ptr<FileInfo>> file_hashes;
+	bool loaded_arrays = false;
 
     std::vector<std::pair<std::shared_ptr<FileInfo>, int>> files_to_process;
 
@@ -66,6 +67,7 @@ class FileTree::FileTreeData {
         files.push_back(nullptr);
         files.push_back(root);
         load_arrays(root);
+        loaded_arrays = true;
     }
 
     void load_arrays(std::shared_ptr<FileInfo> node) {
@@ -147,6 +149,14 @@ FileTree::~FileTree() { }
 }*/
 
 std::shared_ptr<FileInfo> FileTree::GetRoot() { return data->root; }
+
+const std::vector<std::shared_ptr<FileInfo>>& FileTree::GetAllFiles() {
+    if (!data->loaded_arrays) {
+        data->load_arrays(GetRoot());
+        data->loaded_arrays = true;
+    }
+    return data->files;
+}
 
 const std::vector<std::string>& FileTree::GetHistoryTreeList() {
     if (history_trees_list.empty()) {
@@ -240,6 +250,7 @@ std::shared_ptr<FileInfo> FileTree::FileTreeData::AddNode(file_type type, std::s
                     || prev_version_status == UNKNOWN || prev_version_status == NOT_UPDATED)
                         // If previous file is UNKNOWN (no known previous version and not processed) -> UNKNOWN
                         // else (if there is at least one known and proccessed previous version) -> NOT_UPDATED
+                        // Newest version of each file can't be DELETED
                         status = prev_version_status == UNKNOWN ? UNKNOWN : NOT_UPDATED;
                     else {
                             status = (params == prev_version_params ? UNCHANGED : UPDATED_PARAMS);

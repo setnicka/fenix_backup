@@ -80,9 +80,13 @@ void LocalFilesystemAdapter::LocalFilesystemAdapterData
 
 
 LocalFilesystemAdapter::LocalFilesystemAdapter(): data{new LocalFilesystemAdapterData()} {}
+LocalFilesystemAdapter::LocalFilesystemAdapter(std::string tree_name): LocalFilesystemAdapter() {
+    data->tree = FileTree::GetHistoryTree(tree_name);
+}
 LocalFilesystemAdapter::~LocalFilesystemAdapter() {}
 
 void LocalFilesystemAdapter::SetPath(std::string path) { data->path = path; }
+std::shared_ptr<FileTree> LocalFilesystemAdapter::GetTree() { return data->tree; }
 
 std::shared_ptr<FileTree> LocalFilesystemAdapter::Scan() {
     data->tree = FileTree::CreateNewTree();
@@ -120,23 +124,37 @@ void LocalFilesystemAdapter::GetAndProcess(std::shared_ptr<FileInfo> file) {
 }
 
 // In this case remote is equal to local
-void LocalFilesystemAdapter::RestoreFile(std::shared_ptr<FileInfo> file, restore_mode mode) {
-    RestoreFileToLocalPath(file, data->path, mode);
+void LocalFilesystemAdapter::RestoreFile(std::shared_ptr<FileInfo> file, restore_mode mode, restore_tactic tactic) {
+    RestoreFileToLocalPath(file, data->path, mode, tactic);
 }
-void LocalFilesystemAdapter::RestoreFileToRemotePath(std::shared_ptr<FileInfo> file, const std::string& path, restore_mode mode, bool preserve_inbackup_path) {
-    RestoreFileToLocalPath(file, path, mode, preserve_inbackup_path);
+void LocalFilesystemAdapter::RestoreFileToRemotePath(std::shared_ptr<FileInfo> file, const std::string& path,
+                                                     restore_mode mode, restore_tactic tactic, bool preserve_inbackup_path)
+{
+    RestoreFileToLocalPath(file, path, mode, tactic, preserve_inbackup_path);
 }
 
-void LocalFilesystemAdapter::RestoreFileToLocalPath(std::shared_ptr<FileInfo> file, const std::string& path, restore_mode mode, bool preserve_inbackup_path) {
+void LocalFilesystemAdapter::RestoreFileToLocalPath(std::shared_ptr<FileInfo> file, const std::string& path,
+                                                    restore_mode mode, restore_tactic tactic, bool preserve_inbackup_path)
+{
+    // 1. Restore newest known version
+    if (tactic == NEWEST_KNOWN_VERSION && data->tree != nullptr && file->GetStatus() == NOT_UPDATED) {
+        auto last_tree = data->tree->GetPrevTree();
+        while (last_tree != nullptr && file->GetStatus() == NOT_UPDATED) {
+            file = last_tree->GetFileById(file->GetPrevVersionId());
+            last_tree = last_tree->GetPrevTree();
+        }
+    }
+
     boost::filesystem::path final_path(path);
-    // 1. Make path if needed
+    // 2. Make path if needed
     if (preserve_inbackup_path) {
         final_path /= file->GetPath();
         boost::filesystem::create_directories(final_path.parent_path());
     }
 
-    // 2. Restore original content
+    // 3. Restore original content
     if (mode != ONLY_PERMISSIONS) {
+        // version status NOT_UPDATED, UNKNOWN or DELETED
         if (file->GetType() != DIR && file->GetHash().empty()) return;
 
         if (file->GetType() == DIR) {
@@ -159,7 +177,7 @@ void LocalFilesystemAdapter::RestoreFileToLocalPath(std::shared_ptr<FileInfo> fi
         }
     }
 
-    // 3. Restore permissions
+    // 4. Restore permissions
     if (mode != ONLY_DATA) {
         file_params params = file->GetParams();
         auto cstring_path = final_path.c_str();

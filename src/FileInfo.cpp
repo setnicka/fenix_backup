@@ -105,6 +105,7 @@ const std::unordered_map<std::string, std::shared_ptr<FileInfo>>& FileInfo::GetC
 
 std::ostream& FileInfo::GetFileContent(std::ostream& out) {
     if (data->type == DIR) throw FileInfoException("Cannot get content of directory\n");
+    if (data->version_status == DELETED) throw FileInfoException("Cannot get file content of deleted file\n");
     if (data->file_hash.empty()) throw FileInfoException("Cannot get file content of unsaved file\n");
 
     auto chunk = FileChunk::GetChunk(data->file_hash);

@@ -10,13 +10,14 @@ namespace FenixBackup {
 
 enum file_type { DIR, FILE, SYMLINK };
 
-enum version_file_status { UNKNOWN, NEW, UNCHANGED, UPDATED_PARAMS, UPDATED_FILE, NOT_UPDATED };
+enum version_file_status { UNKNOWN, NEW, UNCHANGED, UPDATED_PARAMS, UPDATED_FILE, NOT_UPDATED, DELETED };
 // UNKNOWN - new file, which is not yet saved (there isn't any older file)
 // NEW - new file, which is saved
 // UNCHANGED - same as older saved version
 // UPDATED_PARAMS - updated only params
 // UPDATED_FILE - updated content (and params) of the file (diff with older version or with empty file when new file)
 // NOT_UPDATED - there are changes, but content wasn't yet saved (there is older version)
+// DELETED - file chunk asociated with this file was deleted
 //
 // Paths: UNKNOWN->NEW, NOT_UPDATED->UPDATED_FILE
 

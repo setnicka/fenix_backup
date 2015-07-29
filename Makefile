@@ -1,5 +1,5 @@
 PROG=fenix_tester
-CLASSES=Config FileInfo FileTree FileChunk Functions
+CLASSES=Config FileInfo FileTree FileChunk Functions BackupCleaner
 ADAPTERS=Adapter LocalFilesystemAdapter
 OTHER=fenix_tester.o sha256.o
 DIRECTORIES=obj/adapters
