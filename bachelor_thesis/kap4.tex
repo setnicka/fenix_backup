@@ -1,6 +1,6 @@
 \chapter{Implementace zálohovacího systému FenixBackup}
 
-Zálohovací systém je napsaný v jazyce \Cpp, konkrétně podle specifikace
+Zálohovací systém je napsaný v~jazyce \Cpp, konkrétně podle specifikace
 \Cpp11. Vyvíjen byl na platformě operačního systému Linux a je optimalizován
 pro jeho systém práv a parametrů souborového systému, ale měl by fungovat na
 všech hlavních platformách.
@@ -10,30 +10,30 @@ všech hlavních platformách.
 \newacronym{PIMPL}{PIMPL}{Návrhový idiom \uv{private implementation} pokoušející
 se skrýt co nejvíce implementace před vnějším světem}
 
-Při implementaci jsem se držel snahy mít v hlavičkových souborech tříd co možná
-nejméně položek nepotřebných jako rozhraní pro komunikaci s ostatními třídami.
+Při implementaci jsem se držel snahy mít v~hlavičkových souborech tříd co možná
+nejméně položek nepotřebných jako rozhraní pro komunikaci s~ostatními třídami.
 Většina privátních proměnných a funkcí je tedy (podle \gls{PIMPL} idiomu)
 zapouzdřena uvnitř vnořených tříd
 
 Důvodem pro tuto snahu je za prvé přehlednost hlavičkových souborů a za druhé
 odstranění potřeby překompilování všech souborů, které daný hlavičkový soubor
-includují při změně v privátní metodě.
+includují při změně v~privátní metodě.
 
-Dále se v celém systému hojně používají chytré pointery zavedené v \Cpp11,
-které na mnoha místech zjednodušují zacházení s instancemi tříd, pokud si na ně
-potřebujeme držet odkaz z více míst zároveň.
+Dále se v~celém systému hojně používají chytré pointery zavedené v~\Cpp11,
+které na mnoha místech zjednodušují zacházení s~instancemi tříd, pokud si na ně
+potřebujeme držet odkaz z~více míst zároveň.
 
 Vše bydlí ve jmenném prostoru {\it FenixBackup}.
 
 \section{Přehled tříd a jejich funkce}
 
-V minulé části jsme si nastínili schéma stromečků reprezentujících jednotlivé
-zálohy a držící informace o souborech, a schéma datových bloků.
+V~minulé části jsme si nastínili schéma stromečků reprezentujících jednotlivé
+zálohy a držící informace o~souborech, a schéma datových bloků.
 
 Souborové stromečky jsou představovány třídou {\it FileTree} a obsahují většinu
-logiky související se zálohováním souborů. V jednotlivých jeho uzlech pak bydlí
-instance třídy {\it FileInfo}, jež si drží informace vždy o jedné složce,
-normálním souboru nebo symlinku. V případě složky si pamatují pointery na v ní
+logiky související se zálohováním souborů. V~jednotlivých jeho uzlech pak bydlí
+instance třídy {\it FileInfo}, jež si drží informace vždy o~jedné složce,
+normálním souboru nebo symlinku. V~případě složky si pamatují pointery na v~ní
 obsažené soubory, jinak si pamatují hash obsahu.
 
 Hashe obsahu odkazují na instance třídy {\it FileChunk}, které již drží finální
@@ -51,8 +51,8 @@ jež obsahuje tři metody pro registraci položek do souborového stromu:
 	\item\texttt{AddSymlink(rodic, jmeno\_souboru, parametry)}
 \end{itemize}
 
-Každá z těchto metod vrací odkaz na nově přidanou položku (který se pak třeba
-v případě složky dá využít pro přidání položek do ní), nebo \texttt{nullptr},
+Každá z~těchto metod vrací odkaz na nově přidanou položku (který se pak třeba
+v~případě složky dá využít pro přidání položek do ní), nebo \texttt{nullptr},
 pokud daná věc nemá být uložena ve stromě souborů (a tedy nemá například smysl
 procházet podstrom souborů pod touto složkou).
 
@@ -68,25 +68,25 @@ první vrstvě položek jako rodiče aj.):
 \end{itemize}
 
 Nakonec třída obsahuje statické metody pro načtení stromu konkrétního jména
-z úložiště (ta vrací odkaz na strom nebo \texttt{nullptr}) a pro vrácení seznamu
-všech stromů v úložišti.
+z~úložiště (ta vrací odkaz na strom nebo \texttt{nullptr}) a pro vrácení seznamu
+všech stromů v~úložišti.
 
 \subsection{FileInfo}
 
-Hlavním úkolem této třídy je držet si informace o jednom souboru, složce či
-symlinku, o kterých si ve všech případech drží parametry jako jsou práva, čas
-poslední modifikace a podobně. V případě složky navíc obsahuje vektor obsažených
-souborů, v ostatních případech pak hash odkazující na příslušný datový blok.
+Hlavním úkolem této třídy je držet si informace o~jednom souboru, složce či
+symlinku, o~kterých si ve všech případech drží parametry jako jsou práva, čas
+poslední modifikace a podobně. V~případě složky navíc obsahuje vektor obsažených
+souborů, v~ostatních případech pak hash odkazující na příslušný datový blok.
 
 Mezi základní metody patří metody pro zpracování obsahu souboru nebo jeho
 vrácení. Jako nepovinný parametr mohou dostat odkaz na aktuálně konstruovaný
-strom souborů a pomocí něj vyhledávat soubory se stejným hashem v minulé verzi
+strom souborů a pomocí něj vyhledávat soubory se stejným hashem v~minulé verzi
 stromu:
 
 \begin{itemize}
 	\item\texttt{ProcessFileContent(inputstream, strom = nullptr)}
 	\item\texttt{GetFileContent(outputstream)} $\rightarrow$
-	\texttt{outputstream} (vrácení umožňuje použití v syntaxi \texttt{<\relax<} streamů)
+	\texttt{outputstream} (vrácení umožňuje použití v~syntaxi \texttt{<\relax<} streamů)
 \end{itemize}
 
 Další důležité metody jsou následující tři sloužící pro správu obsahu složek.
@@ -109,7 +109,7 @@ Dále existuje třída představující konfiguraci {\it Config}, která vrací
 jednotlivé položky načtené konfigurace a pak řeší dotazy na pravidla pro
 jednotlivé zálohované soubory (opět podle načtené konfigurace).
 
-Pro komunikaci s adaptéry je pak definována abstraktní třída {\it Adapter}
+Pro komunikaci s~adaptéry je pak definována abstraktní třída {\it Adapter}
 obsahující metody pro proskenování a vytvoření souborového stromu, pro
 zpracování obsahu souboru a pro obnovení souboru na původní, nebo na zadané
 místo.
@@ -122,7 +122,7 @@ konfiguračních souborů, pro serializaci dat, pro počítání \gls{SHA256} ha
 
 Důvody pro použití externích knihoven jsou hlavně dva: Pokud existuje fungující
 a efektivní řešení daného problému, není potřeba \uv{znovu vynalézat kolo}, a za
-druhé, na mnohá z těchto řešení mohou být uživatelé zvyklí (například konfigurace)
+druhé, na mnohá z~těchto řešení mohou být uživatelé zvyklí (například konfigurace)
 a použití známých komponent usnadní uživatelům používání.
 
 \subsection*{Konfigurace -- libconfig}
@@ -130,46 +130,46 @@ a použití známých komponent usnadní uživatelům používání.
 Byla použita mezi mnoha projekty rozšířená a přizpůsobivá knihovna
 \texttt{libconfig}\footnote{\url{http://www.hyperrealm.com/libconfig/}}. Důvodem
 pro její volbu je velká rozšířenost mezi C a \Cpp projekty a tedy její známost
-mezi uživateli. Program potřebuje být slinkován s knihovnou
+mezi uživateli. Program potřebuje být slinkován s~knihovnou
 \texttt{libconfig++}.
 
 \subsection*{Serializace dat -- Cereal}
 
-Pro serializaci instancí tříd {\it FileTree} (s navázanými instancemi třídy
-{\it FileInfo}) a {\it FileChunk} se používá serializační knihovna {\it Cereal}%
+Pro serializaci instancí tříd {\it FileTree} (s~navázanými instancemi třídy
+{\it FileInfo}) a~{\it FileChunk} se používá serializační knihovna {\it Cereal}%
 \footnote{\url{http://uscilab.github.io/cereal/index.html}}, což je projekt
 vzniklý cíleně pro \Cpp11 a novější využívající vlastností chytrých
 pointerů pro serializaci složitých datových struktur.
 
-Sídlí čistě v hlavičkových souborech přiložených společně s projektem, takže
+Sídlí čistě v~hlavičkových souborech přiložených společně s~projektem, takže
 není nutné cokoliv dynamicky linkovat.
 
 \subsection*{Hashe a rozdíly -- sha256.h a open-vcdiff}
 
 Pro počítání \gls{SHA256} je použita část hashovací knihovny, kterou napsal
 Stephan Brumme\footnote{\url{http://create.stephan-brumme.com/hash-library/}},
-sídlí jen v hlavičkových souborech, tedy se opět nic dynamicky nelinkuje.
+sídlí jen v~hlavičkových souborech, tedy se opět nic dynamicky nelinkuje.
 
 Pro vytváření a zpracování binárních rozdílů souborů je použita\gls{VCDIFF}
 implementace \texttt{open-vcdiff}\footnote{\url{https://code.google.com/p/open-vcdiff/}},
-která vyžaduje slinkování s externími knihovnami \texttt{libvcdcom}, \texttt{libvcdenc}
+která vyžaduje slinkování s~externími knihovnami \texttt{libvcdcom}, \texttt{libvcdenc}
 a \texttt{libvcddec}.
 
 \subsection*{Souborový systém -- boost::filesystem}
 
 Na místech interagujících nějakým složitějším způsobem se souborovým systémem
-byla použita implementace souborového systému z \Cpp projektu \texttt{boost}%
+byla použita implementace souborového systému z~\Cpp projektu \texttt{boost}%
 \footnote{\url{http://www.boost.org/doc/libs/1_46_0/libs/filesystem/v3/doc/index.htm}}.
 Poskytuje na platformě nezávislé rozhraní a při případném použití zálohovacího
 systému na jiné platformě, než na které byl vyvinut, by tak neměla nastat žádné
-významné problémy. Pro běh musí být program slinkován s knihovnami
+významné problémy. Pro běh musí být program slinkován s~knihovnami
 \texttt{libboost\_system} a \texttt{libboost\_filesystem}.
 
 \section{Ukládání dat}
 
 Souborové stromy a datové bloky jsou ukládány na oddělená místa. Každý souborový
-strom, stejně jako popis datového bloku, sídlí v samostatném souboru na disku.
-Soubory jsou ukládány v binárním formátu. Ke každé serializované instanci třídy
+strom, stejně jako popis datového bloku, sídlí v~samostatném souboru na disku.
+Soubory jsou ukládány v~binárním formátu. Ke každé serializované instanci třídy
 {\it FileChunk} je ještě připojen blok dat ve formátu \gls{VCDIFF} popisující
 rozdíl oproti prázdnému souboru, nebo oproti nějakému jinému uloženému datovému
 bloku.
@@ -179,15 +179,15 @@ více druhů serializačních archivů, zálohovací systém využívá binárn�
 zápisu dat). Formát dat je explicitně verzovaný, což dovoluje do budoucna
 přidávat či ubírat položky se zachováním zpětné kompatibility.
 
-Cereal dovoluje pojmenovávat ukládané položky, což se využívá při výstupu v
-lidsky čitelných formátech typu JSON nebo XML (toho bylo využíváno při vývoji),
-ale v binárním formátu jsou za sebe serializovaná jen samotná binární data. Pokud
+Cereal dovoluje pojmenovávat ukládané položky, což se využívá při výstupu
+v~lidsky čitelných formátech typu JSON nebo XML (toho bylo využíváno při vývoji),
+ale v~binárním formátu jsou za sebe serializovaná jen samotná binární data. Pokud
 je serializován chytrý pointer na objektu, je nejdříve uveden čtyřbytový
 identifikátor typu objektu a pak buď serializovaná data objektu, nebo čtyřbytové
 pořadové číslo již použitého chytrého pointeru na tento typ objektu.
 
 Každému archivu předchází hlavička a čtyřbytové číslo verze, níže následují
-seřazené tabulky položek pro obě serializované třídy. S jejich znalostí je možné
+seřazené tabulky položek pro obě serializované třídy. S~jejich znalostí je možné
 snadno pomoci jakékoliv verze knihovny Cereal získat původní data i bez
 zálohovacího systému
 
@@ -251,15 +251,15 @@ Závislé instance & std::vector<std::string> \\
 Prvním krokem je vždy obstarání si stromu souborů, neboli instance třídy
 {\it FileTree}. Většinou si vyrobíme aktuální ze současného stavu zálohovaných
 dat pomocí vhodného adaptéru, ale je možné vzít i starší instanci třídy
-{\it FileTree} a modifikovat tu (je pak ale nutné počítat s tím, že nebudou
-souhlasit kontrolní součty v navazujících instancích {\it FileTree}).
+{\it FileTree} a modifikovat tu (je pak ale nutné počítat s~tím, že nebudou
+souhlasit kontrolní součty v~navazujících instancích {\it FileTree}).
 
 \newpage
 
 \subsection{Záznam do stromu souborů a hledání minulé verze}
 
-Pokud si strom souborů vyrábíme, tak v nějakou chvíli dojde k přidání námi
-sledovaného souboru (voláním jedné z metod třídy {\it FileTree}). Přitom proběhne
+Pokud si strom souborů vyrábíme, tak v~nějakou chvíli dojde k~přidání námi
+sledovaného souboru (voláním jedné z~metod třídy {\it FileTree}). Přitom proběhne
 následující posloupnost operací:
 \begin{enumerate}
 	\item Obstarají se pravidla pro tento soubor (od třídy {\it Config})
@@ -268,43 +268,43 @@ následující posloupnost operací:
 	\item Uloží se známé parametry souboru (vlastník, velikost, čas modifikace)
 	\item Pokud je znám minulý strom: Systém se pokusí nalézt soubor se
 	stejnou cestou (dotazem na svého rodiče, jestli zná svůj starší
-	ekvivalent, a z něj jedním dotazem na jméno souboru). Pokud není nalezen,
+	ekvivalent, a z~něj jedním dotazem na jméno souboru). Pokud není nalezen,
 	je nastaven stav \texttt{UNKNOWN} a zpracování se ukončí.
 	\item Pokud nebyla poslední verze zpracována, i když se změnila (status
 	\texttt{UNKNOWN}, \texttt{NOT\_UPDATED} nebo \texttt{DELETED}), nastav
-	stejný stav (mimo \texttt{DELETED}, v tom případě nastav
+	stejný stav (mimo \texttt{DELETED}, v~tom případě nastav
 	\texttt{NOT\_UPDATED}) a skonči.
 	\item Pokud je nalezený soubor stejného typu, velikosti, času modifikace
 	a parametrů $\rightarrow$ status \texttt{UNCHANGED} a přiřadí se stejný hash
 	(odkazující na stejný datový blok).
 	\item Pokud je nalezený soubor stejného typu, velikosti, času modifikace,
-	ale liší se v parametrech $\rightarrow$ status \texttt{UPDATED\_STATUS}
+	ale liší se v~parametrech $\rightarrow$ status \texttt{UPDATED\_STATUS}
 	a přiřadí se stejný hash (odkazující na stejný datový blok).
 	\item Jinak přiřaď status \texttt{NOT\_UPDATED}.
 \end{enumerate}
 
 Pokud soubor skončí ve stavu \texttt{NOT\_UPDATED} nebo \texttt{UNKNOWN}, přidá
-se do seznamu souborů k obstarání a spočítá se pro něj skóre důležitosti, jak
+se do seznamu souborů k~obstarání a spočítá se pro něj skóre důležitosti, jak
 již bylo ukázáno.
 
 \subsection{Zpracování obsahu souboru}
 
-Pokud se zálohovací systém rozhodne, že má zájem o obsah souboru, tak ho adaptér
+Pokud se zálohovací systém rozhodne, že má zájem o~obsah souboru, tak ho adaptér
 nějakým způsobem obstará a poté voláním metody na třídě {\it FileInfo} předá
 tomuto záznamu obsah souboru.
 
 Nedjříve se spočítá \gls{SHA256} hash a pokud není známá minulá verze souboru,
-porovná se, jestli neexistuje v minulém stromě soubor se stejným hashem. Pokud
-ano, přiřadí se jako minulá verze, k souboru se uloží hash a skončí se, protože
+porovná se, jestli neexistuje v~minulém stromě soubor se stejným hashem. Pokud
+ano, přiřadí se jako minulá verze, k~souboru se uloží hash a skončí se, protože
 není nutné obsah dále zpracovávat (takto systém pozná přesuny souborů).
 
 Pokud toto neuspěje, je potřeba obsah souboru uložit. Nedjříve systém prozkoumá,
 jestli již nemá uložen soubor se stejným hashem (tedy pokud zachováme důvěru
-v kryptografickou hashovací funkci, tak i se stejným obsahem) a pokud ano, není
+v~kryptografickou hashovací funkci, tak i se stejným obsahem) a pokud ano, není
 nutné nic nového ukládat a použijeme tento uložený datový blok.
 
 Pokud stejný datový blok neexistuje, tak systém vytvoří novou instanci třídy
-{\it FileChunk} reprezentující soubor s tímto hashem a nechá ji zpracovat obsah.
+{\it FileChunk} reprezentující soubor s~tímto hashem a nechá ji zpracovat obsah.
 Pokud je znám předek, tak se zkusí vytvořit \gls{VCDIFF} oproti poslední verzi
 (získají se data této poslední verze a udělá se rozdíl mezi nimi), jinak se dělá
 rozdíl oproti prázdnému souboru.
@@ -317,7 +317,7 @@ souboru), čímž se opět dosáhne nižší hloubky.
 Alternativou by bylo vytvářet novou kompletní kopii takového souboru, ale rozdíl
 oproti nějaké základní verzi zabere nejvýše tolik místa, kolik by zabral rozdíl
 oproti prázdnému souboru. Takže toto řešení je nejméně stejně dobré, jako řešení
-s vyráběním nových záznamů s o jedna nižší maximální hloubkou.
+s~vyráběním nových záznamů s~o~jedna nižší maximální hloubkou.
 
 \section{Obnova dat}
 
@@ -327,21 +327,21 @@ systému pak poskytuje podporu pro:
 \begin{itemize}
 	\item Obnovu jednoho konkrétního souboru nebo celého podstromu
 	\item Obnovu do původního místa, do jiného místa na původním (vzdáleném)
-	stroji a do jiného místa v lokálním souborovém systému
+	stroji a do jiného místa v~lokálním souborovém systému
 	\item Obnovu pouze dat souboru, pouze parametrů souboru, nebo všeho
 \end{itemize}
 
-Navíc se dá specifikovat taktika, co se má dělat, pokud v aktuálním stromu není
+Navíc se dá specifikovat taktika, co se má dělat, pokud v~aktuálním stromu není
 soubor dostupný, určuje se podle dalšího parametru předávaného obnovovacím
-funkcím. Výchozí chování je to, že v takovém případě se pokusí systém nalézt
+funkcím. Výchozí chování je to, že v~takovém případě se pokusí systém nalézt
 nejnovější zálohovanou verzi souboru a obnoví tu (zde si můžeme všimnout, že
-starší verzi má smysl hledat jen u souborů označených jako
-\texttt{NOT\_UPDATED}, u souborů označených \texttt{UNKNOWN} ne). Alterantivním
+starší verzi má smysl hledat jen u~souborů označených jako
+\texttt{NOT\_UPDATED}, u~souborů označených \texttt{UNKNOWN} ne). Alterantivním
 chováním je obnova pouze těch dat, která jsou odkazovaná aktuálním stromem
 (neuložené soubory jsou přeskakovány).
 
 Při obnovování je navíc potřeba dát pozor na hardlinky vedoucí mimo obnovovanou
-oblast. V takovém případě by se mohlo stát, že se obnovením nějakého souboru
+oblast. V~takovém případě by se mohlo stát, že se obnovením nějakého souboru
 přes hardlink projeví změna i na úplně jiném místě, což pravděpodobně není
 požadovaný cíl. Zálohovací systém tedy přijal taktiku nejdříve obnovovaný soubor
 celý smazat (tím se zruší případné provázání hardlinkem) a pak na stejném místě
@@ -351,8 +351,8 @@ vytvořit znovu.
 
 Obnova jednoho souboru začíná dotazem na jeho typ -- pokud to je složka, tak
 jsou všechny potřebné informace uložené již ve stromě souborů a není nutné
-získávat jakákoliv data z datových bloků. Pokud to není složka, tak se přes
-třídu {\it FileInfo} dostane žádost o obnovení dat až na datový blok
+získávat jakákoliv data z~datových bloků. Pokud to není složka, tak se přes
+třídu {\it FileInfo} dostane žádost o~obnovení dat až na datový blok
 reprezentující danou verzi souboru.
 
 Pokud se datový blok (uložený ve formátu \gls{VCDIFF}) neodkazuje na žádný jiný,
@@ -363,27 +363,27 @@ datového bloku a ten je vrácen.
 
 \section{Mazání uložených dat -- uvolňování místa}
 
-Zálohovací systém se může čas od času potkat s nutností uvolnit nějaké místo.
-K uvolnění místa je nutné zahodit některé informace, které si zálohovací systém
+Zálohovací systém se může čas od času potkat s~nutností uvolnit nějaké místo.
+K~uvolnění místa je nutné zahodit některé informace, které si zálohovací systém
 pamatuje, a když už se to provádí, měl by systém nějakým vhodným způsobem zvolit
 podle něj nejméně důležitá data a ta zahodit.
 
 Toliko abstraktní představa, teď konkrétněji. Uvolnit místo se dá smazáním
 některých datových bloků a úkolem mazání je vybrat ten blok, který bude
 \uv{nejméně scházet}. Na co se nesmí zapomenout je to, že na jeden datový blok
-se může odkazovat více záznamů o souborech.
+se může odkazovat více záznamů o~souborech.
 
-Vybrání bloku ke smazání probíhá tak, že se pro každý záznam o zálohovaném
+Vybrání bloku ke smazání probíhá tak, že se pro každý záznam o~zálohovaném
 souboru spočítá {\it baddness} (\uv{míra špatnosti}), která se odvíjí mimo jiné
 i od stáří zálohy a jejich nahuštěnosti -- je větší snaha držet novější zálohy
 a více do historie může pokrytí řídnout (přesná funkce viz níže).
 
-Z takto spočítaných baddness pro každý záznam o souboru se pro každý datový
+Z~takto spočítaných baddness pro každý záznam o~souboru se pro každý datový
 blok vybere ta nejmenší baddness ze souborů, které daný blok využívají, čímž se
 efektivně ohodnotí bloky podle toho, jak moc jsou významné pro historii. Pak se
 mohou bloky postupně od největší baddness vybírat a mazat. Přitom je nutné dát
 pozor na to, že při smazání nějakého bloku (a tím několik verzí souborů) se
-může změnit baddness okolním souborům v historii a ty se musí přepočítat. Dá se
+může změnit baddness okolním souborům v~historii a ty se musí přepočítat. Dá se
 však vypozorovat, že se baddness vždy jenom sníží, čehož se dá využít při
 praktickém nasazení ke zjednodušení implementace.
 
@@ -391,23 +391,23 @@ praktickém nasazení ke zjednodušení implementace.
 
 Čistící třída {\it BackupClean} obsahuje jednu metodu, jejímž voláním se načte
 kompletní seznam všech záloh a obsažených souborů, a druhou metodu sloužící ke
-smazání vždy jednoho datového bloku s největší baddness. Postup je tedy takový,
+smazání vždy jednoho datového bloku s~největší baddness. Postup je tedy takový,
 že se jednou načte kompletní seznam a pak se opakovaně volá mazání bloků.
 
 Při načítání se nejprve vytvoří pro každou známou navazující posloupnost souborů
-jeden jejich vektor (aby bylo možné snadno nalézt o jedna novější a o jedna
-starší verzi souboru). Pak se pro každý záznam o souboru spočítá baddness podle
+jeden jejich vektor (aby bylo možné snadno nalézt o~jedna novější a o~jedna
+starší verzi souboru). Pak se pro každý záznam o~souboru spočítá baddness podle
 tohoto vzorce:
 
 $$TODO\over[\hbox{hodnota \texttt{history} z konfigurace}]$$
 
 Ze spočítaných baddness se vybere pro každý datový blok ta nejmenší a pak se
-tato hodnota ještě vydělí pro každý datový blok počtem na něj navazujích bloků
-(to je heuristika beroucí v úvahu to, že při vícero navazujích blocích by se
+tato hodnota ještě vydělí pro každý datový blok počtem na něj navazujících bloků
+(to je heuristika beroucí v~úvahu to, že při vícero navazujících blocích by se
 namísto zmenšení mohl celkový datový objem zvětšit, viz dále).
 
 Pak se datové bloky utřídí od největší hodnoty. Po smazání datového bloku se
-provede označení všech spojených záznamů o souborech jako \texttt{DELETED} a
+provede označení všech spojených záznamů o~souborech jako \texttt{DELETED} a
 všem okolním záznamům se přepočítá baddness. Pak je systém připraven pro mazání
 dalšího bloku.
 
@@ -419,9 +419,9 @@ nejdříve všechny navazující datové bloky nechat přepočítat, aby se odka
 na předka mazaného bloku, a teprve poté je možné blok odstranit.
 
 Přepočítání proběhne tak, že se provede obnovení dat předka mazaného souboru a následníků mazaného souboru a spočítá se nový \gls{VCDIFF} mezi nimi. Tím se
-změny pokrývané tímto blokem rozředí do změn v dalších blocích.
+změny pokrývané tímto blokem rozředí do změn v~dalších blocích.
 
-V některých případech se může stát, že se tímto krokem celkový objem dat dokonce
+V~některých případech se může stát, že se tímto krokem celkový objem dat dokonce
 zvětší, protože se velký rozdíl pokrývaný tímto souborem odsune do více
 navazujících souborů. Proto je součástí výpočtu baddness datových bloků také
 dělení počtem navazujících bloků

@@ -1,31 +1,31 @@
 \chapter{Uživatelská dokumentace zálohovacího systému FenixBackup}
 
-FenixBackup se v současnosti ovládá z příkazové řádky, ale do budoucna není
+FenixBackup se v~současnosti ovládá z~příkazové řádky, ale do budoucna není
 problém nad samotným jádrem postavit více jinak fungujících rozhranní (třeba
 GUI). Pro jeho fungování je nezbytný konfigurační soubor, který popisuje co,
 jakým způsobem a kam se má zálohovat.
 
 \section{Konfigurační soubor}
 
-Konfigurační soubor se vztahuje vždy k jednomu zálohovanému stroji a obsahuje
-tři části. První specifikuje úložiště zálohovaných dat, druhá z nich popisuje
-způsob připojení k zálohovanému stroji -- volba adaptéru a parametry pro něj
-(například cesta v rámci lokálního souborového systému, nebo adresu a port
+Konfigurační soubor se vztahuje vždy k~jednomu zálohovanému stroji a obsahuje
+tři části. První specifikuje úložiště zálohovaných dat, druhá z~nich popisuje
+způsob připojení k~zálohovanému stroji -- volba adaptéru a parametry pro něj
+(například cesta v~rámci lokálního souborového systému, nebo adresu a port
 stroje, na který se připojit) a poslední a nejobsáhlejší nakonec popisuje
 zálohovací pravidla pro jednotlivé soubory.
 
 Při spuštění zálohovacího systému je nejdříve načtena celá konfigurace a teprve,
-když se jí povede celou zpracovat bez chyby, přistupuje se k provádění příkazů.
+když se jí povede celou zpracovat bez chyby, přistupuje se k~provádění příkazů.
 
 \subsection{Ukázková konfigurace}
 
-Konfigurace pro zápis používá v mnoha projektech rozšířený zápis poskytovaný
+Konfigurace pro zápis používá v~mnoha projektech rozšířený zápis poskytovaný
 knihovnou {\it libconfig}.%
 \footnote{\url{http://www.hyperrealm.com/libconfig/libconfig_manual.html}}
 
 Protože je velmi časté používat společná zálohovací pravidla pro více strojů,
 dají se tato společná pravidla sdružit do společných souborů a ty pomocí
-direktivy \texttt{@include} v konfiguraci používat opakovaně na více místech.
+direktivy \texttt{@include} v~konfiguraci používat opakovaně na více místech.
 
 Ukázka je připojena níže.
 
@@ -73,15 +73,15 @@ ukládání dat souborů a souborových stromečků (\texttt{dataSubdir}
 a \texttt{treeSubdir}).
 
 Druhá položka \texttt{adapter} specifikuje způsob získávání zálohovaných dat.
-V první řadě je specifikováno, který adaptér se má použít, a zbytek položek je
+V~první řadě je specifikováno, který adaptér se má použít, a zbytek položek je
 pak předán tomuto adaptéru jako jeho nastavení.
 
 Poslední části konfigurace popisuje pravidla pro cesty a specifičtější pravidla
-určovaná filtry, jejichž fungování jsme rozebrali v minulé kapitole.
+určovaná filtry, jejichž fungování jsme rozebrali v~minulé kapitole.
 
-\section{Použití z příkazové řádky}
+\section{Použití z~příkazové řádky}
 
-FenixBackup je psaný primárně pro spouštění příkazů z příkazové řádky s cílem
+FenixBackup je psaný primárně pro spouštění příkazů z~příkazové řádky s~cílem
 umožnit snadné plánování akcí třeba pomocí \texttt{cron}u.
 
 Základem je spuštění příkazu \texttt{fenix}, kterému se vždy předá cesta ke

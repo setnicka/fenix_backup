@@ -1,20 +1,20 @@
 \chapter*{Úvod}
 \addcontentsline{toc}{chapter}{Úvod}
 
-Potřeba zálohovat data se pojí s počítačovým světem prakticky od jeho vzniku
-a vychází z dob ještě před jeho existencí -- z potřeby udržovat kopie například
+Potřeba zálohovat data se pojí s~počítačovým světem prakticky od jeho vzniku
+a vychází z~dob ještě před jeho existencí -- z~potřeby udržovat kopie například
 důležitých dokumentů a chránit je tak před náhodným nebo cíleným zničením nebo
 ztrátou.
 
-V dřívějších dobách stačilo pořídit fyzickou kopii důležitého dokumentu a ten
-uložit ideálně na jiném fyzickém místě, s nástupem počítačového ukládání dat se
-k tomu však ještě přidal aspekt toho, že data je možná snadno editovat a měnit.
+V~dřívějších dobách stačilo pořídit fyzickou kopii důležitého dokumentu a ten
+uložit ideálně na jiném fyzickém místě, s~nástupem počítačového ukládání dat se
+k~tomu však ještě přidal aspekt toho, že data je možná snadno editovat a měnit.
 
-Pokud tedy v současné době mluvíme o zálohování, je potřeba toto brát v potaz
+Pokud tedy v~současné době mluvíme o~zálohování, je potřeba toto brát v~potaz
 a přizpůsobit tomu strategie zálohování. Nestačí pouze pořídit kopii dat ve
 chvíli jejich vzniku, ale je nutné dívat se na data jako na dynamicky se měnící
-objekt, u kterého chceme tyto změny sledovat, a mít možnost vrátit se
-k dřívějšímu stavu, pokud je to zapotřebí.
+objekt, u~kterého chceme tyto změny sledovat, a mít možnost vrátit se
+k~dřívějšímu stavu, pokud je to zapotřebí.
 
 Pokud si zkusíme rozebrat situace, před kterými by nás zálohovací systém měl
 chránit, napadne nás pravděpodobně následující:
@@ -25,49 +25,49 @@ ukládání dat na více nezávislých disků}
 \begin{enumerate}
 	\item Závada pevného disku či jiného ukládacího média -- Před tímto nás
 	zálohování ochrání možností obnovy poslední zálohované verze dat, ale
-	v případě běžného diskového úložiště se zde nabízí ještě jiná lepší
+	v~případě běžného diskového úložiště se zde nabízí ještě jiná lepší
 	alternativa a to použít nějakou variantu \gls{RAID}.
 	\item Ztráta, odcizení nebo zničení celého počítače (živelná katastrofa)
-	-- Zde nám \gls{RAID} typicky nepomůže, protože jednotlivé disky v něm
+	-- Zde nám \gls{RAID} typicky nepomůže, protože jednotlivé disky v~něm
 	bývají umístěny na stejném fyzickém místě. Data se dají zachránit
-	z poslední provedené zálohy (zde velmi záleží na politice zálohování,
+	z~poslední provedené zálohy (zde velmi záleží na politice zálohování,
 	jak je záloha aktuální).
 	\item Vrácení se do stavu před provedením nějaké akce -- Toto se hodí
 	například při neúmyslném smazání některých souborů, nebo při nepovedené
 	úpravě systému (instalace nového software aj.). Zde nám naopak techniky
-	jako \gls{RAID} nepomohou, protože ty se starají jen o redundanci
+	jako \gls{RAID} nepomohou, protože ty se starají jen o~redundanci
 	nejaktuálnější verze uložených dat a nemají historii.
 	\item Odhalování útoků na zálohovaný stroj -- Při podezřelé aktivitě na
-	zálohovaném stroji lze porovnáním změn v souborech zjistit, jestli nebyl
+	zálohovaném stroji lze porovnáním změn v~souborech zjistit, jestli nebyl
 	tento stroj napaden (a nebyly například provedeny změny na systémových
-	souborech) a v jakém časovém období se tak případně stalo.
+	souborech) a v~jakém časovém období se tak případně stalo.
 \end{enumerate}
 
 Pro první a druhý případ nám stačí držet si vždy jen poslední verzi souborů.
 Pokud ale chceme, aby náš zálohovací systém pokrýval i situace popsané ve třetím
 a čtvrtém bodě, je potřeba si nějakým způsobem udržovat více historických verzí
-a umět si vyvolat stav dat libovolné z těchto verzí, případně si mezi libovolnými
+a umět si vyvolat stav dat libovolné z~těchto verzí, případně si mezi libovolnými
 dvěma zobrazit rozdíly.
 
-Dalším důležitým aspektem zálohovacího systému diskové místo potřebné k
-zálohování zálohovaného stroje. S nějakým potřebným místem je nutné počítat, ale
+Dalším důležitým aspektem zálohovacího systému diskové místo potřebné
+k~zálohování zálohovaného stroje. S~nějakým potřebným místem je nutné počítat, ale
 přílišné plýtvání (například způsobené ukládáním celé nové verze souboru při
 jeho drobné změně) není na místě. Stejně tak je většinou potřeba \uv{ředit}
 staré verze záloh a držet si jen ty významné.
 
 Neméně důležitou věcí je to, že ke všem datům také nepřistupujeme stejně. Některá
 data jsou pro nás typicky významnější a je pro nás důležitější zálohovat změny
-v nich prováděné, jiná data tak významná nejsou a není třeba nutné držet si od
+v~nich prováděné, jiná data tak významná nejsou a není třeba nutné držet si od
 těchto dat takové množství historických verzí.
 
-Poslední zásadní věcí je pak pro nás čas provedení zálohy. U strojů stále
-připojených k rychlé síti to není až tak důležité, ale u přenosných počítačů,
-které jsou k rychlé síti připojeny jen omezenou dobu nebo u strojů připojených
+Poslední zásadní věcí je pak pro nás čas provedení zálohy. U~strojů stále
+připojených k~rychlé síti to není až tak důležité, ale u~přenosných počítačů,
+které jsou k~rychlé síti připojeny jen omezenou dobu nebo u~strojů připojených
 po pomalé síti je toto důležité. Zde přichází ke slovu jednak správné sledování
 a přenášení jen těch dat, která se změnila, tak prioritizace dat na základě
-jejich významu pro nás, jak bylo popsáno v předchozím odstavci.
+jejich významu pro nás, jak bylo popsáno v~předchozím odstavci.
 
 Na všechny tyto aspekty jsem se pokoušel při vývoji svého zálohovacího systému
-(nazvaného podle bájného mýtického ptáka postávajícího po svém zničení z popela,
+(nazvaného podle bájného mýtického ptáka postávajícího po svém zničení z~popela,
 stejně jako to chceme od zálohovaných dat) brát zřetel a zohlednit je. Vznikl
 tak zálohovací systém {\it FenixBackup}.

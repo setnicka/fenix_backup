@@ -1,14 +1,14 @@
 \chapter{Existující metody a systémy zálohování}
 
-Jak již bylo popsáno v úvodu práce, dá se k zálohování přistupovat mnoha způsoby.
-Pojďme si zkusit tyto způsoby rozebrat, podívat se na ně z několika hledisek
+Jak již bylo popsáno v~úvodu práce, dá se k~zálohování přistupovat mnoha způsoby.
+Pojďme si zkusit tyto způsoby rozebrat, podívat se na ně z~několika hledisek
 efektivity a zhodnotit jejich klady a zápory. Dále se zkusme podívat na
 několik existujících zálohovacích řešení.
 
 \section{Jednoduché kopírování}
 
-Při zálohování vždy jde o to držet si nějakým způsobem kopii nějakých dat. Výběr
-dat k zálohování nyní odložíme stranou a budeme si představovat, že máme nějakou
+Při zálohování vždy jde o~to držet si nějakým způsobem kopii nějakých dat. Výběr
+dat k~zálohování nyní odložíme stranou a budeme si představovat, že máme nějakou
 dobře definovanou množinu souborů, které chceme zálohovat.
 
 \newacronym{FTP}{FTP}{File Transfer Protocol -- jednoduchý síťový protokol pro
@@ -21,10 +21,10 @@ Nejjednodušším způsobem co do implementace je asi {\bf ruční kopírování
 uživatel sám čas od času zkopíruje zálohované soubory na nějaké jiné úložiště.
 Na tomto úložišti si uživatel může držet buď jen jednu kopii dat (vždy jen
 nejnovější verzi), což zabere řádově tolik místa, kolik zabírají zálohovaná data
-na zálohovaném stroji, nebo si může držet všechny historické verze. V takovém
+na zálohovaném stroji, nebo si může držet všechny historické verze. V~takovém
 případě ale zálohy zaberou místo $[\hbox{počet záloh}]\times[\hbox{velikost dat}]$,
 což je pro časté zálohování velkého objemu dat neudržitelné (objem dat lze sice
-snížit vhodnou kompresí, ale to oddálí problém jen o kus dále).
+snížit vhodnou kompresí, ale to oddálí problém jen o~kus dále).
 
 Jako metodu kopírování lze zvolit mnoho protokolů, od kopírování po místním
 souborovém systému (což nebývá moc účinné proti selhání celého počítače nebo
@@ -32,67 +32,67 @@ jeho ztrátou), přes kopírování přes síť pomocí \gls{FTP} nebo nad \gls{
 postaveným \gls{SCP}.
 
 Všechny tyto metody kopírování jsou ale \uv{hloupé}, udělají jen přesně to, co
-od nich žádáme -- zkopírují zadané soubory na cílové úložiště bez starosti o to,
+od nich žádáme -- zkopírují zadané soubory na cílové úložiště bez starosti o~to,
 jestli již zde stejné soubory nebyly kopírovány dříve. Pokud byly provedeny jen
-malé změny, tak přenášíme zbytečně velké objemy dat, které již v cílovém místě
+malé změny, tak přenášíme zbytečně velké objemy dat, které již v~cílovém místě
 uložená jsou.
 
 Kdybychom dokázali dostatečně bezpečně poznat, jaká data se nezměnila, mohli
 bychom objem přenášených dat výrazně snížit a kopírovat jen rozdílná data.
 Když zálohování provádí uživatel sám a ručně, může posloužit jako rozhodovací
-veličina v tom, která data se podle jeho mínění změnila a která je tedy potřeba
-zálohovat. To je ale jednak nespolehlivé a může to vést k chybám, ale hlavně se
+veličina v~tom, která data se podle jeho mínění změnila a která je tedy potřeba
+zálohovat. To je ale jednak nespolehlivé a může to vést k~chybám, ale hlavně se
 tento postup nedá použít při zautomatizování zálohování (což by mělo být jedním
-z hlavních cílů zálohovacích systémů).
+z~hlavních cílů zálohovacích systémů).
 
 \newpage
 
 \section{Kopírování rozdílů}
 
 Když si vezmeme za cíl kopírovat jen ta data, která se oproti poslednímu
-zálohovanému stavu změnila, dostáváme se k otázce, jak dostatečně bezpečně
+zálohovanému stavu změnila, dostáváme se k~otázce, jak dostatečně bezpečně
 poznat, co se změnilo.
 
-Vzhledem k vlastnostem v současnosti používaných souborových systémů je
-nejsnadnější dívat se na změny soubor po souboru a v případě změny ho přenést
+Vzhledem k~vlastnostem v~současnosti používaných souborových systémů je
+nejsnadnější dívat se na změny soubor po souboru a v~případě změny ho přenést
 celý. Dá se zavést i drobnější granularita a sledovat data po menších blocích,
 než po celých souborech, ale to je již výrazně obtížnější.
 
-\newacronym{UNIX}{UNIX}{Operační systém vzniklý v roce 1969, který dal vzniknout
+\newacronym{UNIX}{UNIX}{Operační systém vzniklý v~roce 1969, který dal vzniknout
 celé rodině odvozených systémů -- Linux, BSD, Mac OS X, aj.}
 
-Současné souborové systémy si u každého souboru pamatují několik parametrů
-(vezmeme si za příklad souborové systémy vycházející z operačního systému
+Současné souborové systémy si u~každého souboru pamatují několik parametrů
+(vezmeme si za příklad souborové systémy vycházející z~operačního systému
 \gls{UNIX}): vlastník a skupina, vlastnická, skupinová a ostatní práva, čas
 poslední změny, velikost souboru a několik dalších parametrů.
 
-Pokud uvažujeme soubory s parametry, je potřeba odlišit změny pouze v nich
+Pokud uvažujeme soubory s~parametry, je potřeba odlišit změny pouze v~nich
 (například změna vlastníka či skupiny) od změn na datech souboru. Parametry
 souboru je nutné si přečíst vždy a tak změny na nich poznáme jednoduše, možností
 jak poznat změnu na datech souboru je pak vícero:
 
-\newacronym{MD5}{MD5}{Kryptografická hashovací funkce vytvářející z libovolného vstupu výstup o velikosti 128 bitů}
-\newacronym{SHA1}{SHA1}{Secure Hash Algorithm -- pokročilejší kryptografická hashovací funkce, vytváří otisk o velikosti 160 bitů}
+\newacronym{MD5}{MD5}{Kryptografická hashovací funkce vytvářející z~libovolného vstupu výstup o~velikosti 128 bitů}
+\newacronym{SHA1}{SHA1}{Secure Hash Algorithm -- pokročilejší kryptografická hashovací funkce, vytváří otisk o~velikosti 160 bitů}
 
 \begin{itemize}
 	\item Kompletní porovnání obsahu souboru po bytech -- zabere čas lineární
-	s velikostí souboru a stejnou přenosovou kapacitu, je ale neomylné.
+	s~velikostí souboru a stejnou přenosovou kapacitu, je ale neomylné.
 	\item Kontrolní součet obsahu souboru -- je nutné stále spočítat kontrolní
-	součet (třeba pomocí \gls{MD5} nebo \gls{SHA1}) souboru v lineárním čase
-	k jeho velikosti, ale přenést mezi zálohovaným a zálohovacím strojem je
-	potřeba pouze tento kontrolní součet (a porovnat ho s uloženým). Při volbě
+	součet (třeba pomocí \gls{MD5} nebo \gls{SHA1}) souboru v~lineárním čase
+	k~jeho velikosti, ale přenést mezi zálohovaným a zálohovacím strojem je
+	potřeba pouze tento kontrolní součet (a porovnat ho s~uloženým). Při volbě
 	dobré hashovací funkce se věří, že nalezení {\it kolize} (nalezení více
 	různých souborů se stejným hashem) je extrémně nepravděpodovné a tedy
 	spolehlivé.
 	\item Porovnání jen parametrů (času poslední modifikace a velikosti) --
-	je nejrychlejší (jde jen o několik porovnání v konstantním čase) a pro
+	je nejrychlejší (jde jen o~několik porovnání v~konstantním čase) a pro
 	většinu situací je dostačující.
 \end{itemize}
 
 Důvodem, proč je poslední možnost považována za dostačující je ta, že je při
 běžném provozu jen velmi málo situací, kdy se změní obsah souboru, ale nezmění
 se čas jeho poslední modifikace a jeho velikost. Většinou to vyžaduje přímou
-a vědomou akci, kterou se čas modifikace souboru nastaví zpět na původní
+a~vědomou akci, kterou se čas modifikace souboru nastaví zpět na původní
 hodnotu.
 
 Situace, ve které je porovnání jen podle velikosti a času modifikace
@@ -100,9 +100,9 @@ nedostačující, je již nastíněné odhalování útoků na zálohovaný stro
 již útočníkovi povede získat kontrolu nad strojem, může snadno modifikovat
 systémové soubory a potom změnit čas jejich modifikace nazpět. Pokud se před
 takovou situací chceme chránit, je vhodné občas nechat zkontrolovat alespoň
-kontrolní součty všech souborů oproti verzi uložené v zálohovacím systému.
+kontrolní součty všech souborů oproti verzi uložené v~zálohovacím systému.
 
-V současnosti jedním z nejvíce využívaných protokolů a současně i programů
+V~současnosti jedním z~nejvíce využívaných protokolů a současně i programů
 implementující nějakým způsobem kopírování jen rozdílných souborů je {\bf rsync}
 (viz \cite{rsync}). Ten potřebuje na jedné straně běžícího klienta a na druhé
 straně běžící server. Ty si mezi sebou vyměňují různé parametry a kontrolní
@@ -111,14 +111,14 @@ komunikace na minimum a přenášet jen nezbytné množství dat (přenos navíc
 komprimovaně).
 
 Bohužel primárním cílem rsyncu je {\it synchronizace} dvou složek a není tak
-úplně vhodný k tomu držet si více historických verzí záloh -- to by pravděpodobně
+úplně vhodný k~tomu držet si více historických verzí záloh -- to by pravděpodobně
 znamenalo mít synchronizovanou složku pro každou historickou verzi a to rsync
-neumí dělat efektivním způsobem. Neumí v nových složkách synchronizovat jen
+neumí dělat efektivním způsobem. Neumí v~nových složkách synchronizovat jen
 změny oproti úplně jiné složce, bylo by potřeba si vždy na zálohovacím stroji
 zkopírovat celou starší zálohu do nové složky a pak synchronizovat až vůči ní.
 
 Toto je obecně problém většiny synchronizačních protokolů a programů, takže se
-většinou nedají samostatně použít k účinnému zálohování. Je však možné je
+většinou nedají samostatně použít k~účinnému zálohování. Je však možné je
 využít jako efektivní přenosovou část zálohovacího systému.
 
 \section{Rozdílové zálohování}
@@ -126,25 +126,25 @@ využít jako efektivní přenosovou část zálohovacího systému.
 Pokud už přenášíme pouze rozdíly, nešel by udělat další krok a místo vždy celých
 kopií zálohovaných dat pro každou historickou verzi si ukládat jen tyto rozdíly?
 Tím bychom odstranili významný problém nastíněný výše, a to přesněji místo
-potřebné k uložení záloh (což by bez rozdílového zálohování znamenalo ukládat
+potřebné k~uložení záloh (což by bez rozdílového zálohování znamenalo ukládat
 velký datový objem: $[\hbox{počet záloh}]\times[\hbox{velikost dat}]$).
 
-Pokud se na problém podíváme v prvním přiblížení, stačí nám si jen na počátku
+Pokud se na problém podíváme v~prvním přiblížení, stačí nám si jen na počátku
 uložit plnou kopii dat a všechny další historické verze si ukládat jen jako
 rozdíly vždy oproti té předchozí. Pro získání konkrétní verze dat nám pak stačí
 jen na původní data aplikovat postupně všechny zapamatované rozdíly až do nějaké
 verze.
 
 Pro získání rozdílu textových dat (takový rozdíl se typicky nazývá anglickým
-výrazem {\it diff} nebo u binárních dat někdy {\it delta}) je možné použít mnoho
+výrazem {\it diff} nebo u~binárních dat někdy {\it delta}) je možné použít mnoho
 nástrojů porovnávajících zadané textová data řádek po řádku. Produkují pak
 takzvaný {\it patch}, který obsahuje řádky, které ubyly, a řádky, které naopak
 přibyly.
 
-\newacronym{VCDIFF}{VCDIFF}{Formát a algoritmus definovaný v RFC 3284 založený
+\newacronym{VCDIFF}{VCDIFF}{Formát a algoritmus definovaný v~RFC 3284 založený
 na článku {\it Data Compression Using Long Common String}}
 
-U binárních dat je situace složitější a není tak jednoduché stanovit, čeho by
+U~binárních dat je situace složitější a není tak jednoduché stanovit, čeho by
 se měl binární diff držet a co by mělo být jeho výsledkem. Pro sjednocení mnoha
 implementací vznikl formát \gls{VCDIFF}. Ten specifikuje tři různé instrukce:
 pro přidání nové sekvence, pro zkopírování úseku ze staré sekvence a pro
@@ -153,32 +153,32 @@ opakování určité sekvence dat.
 Dá se použít i pro kompresi (i když pro tyto účely existují lepší algoritmy a
 formáty), ale hlavně se dá za sebe zřetězit stará a nová verze binárních dat,
 ale kóduje se jen úsek odpovídající nové verzi dat. Díky tomu, že se ale může
-odkazovat na sekvence v původní verzi dat, vznikne tak vlastně jen požadovaný
+odkazovat na sekvence v~původní verzi dat, vznikne tak vlastně jen požadovaný
 binární diff.
 
 \subsection*{Problémy reálné implementace}
 
-V reálné implementaci rozdílové zálohování musíme vyřešit ještě několik drobných
-problémů. Prvním z nich je to, že postupně se nabalující rozdíly způsobí, že
+V~reálné implementaci rozdílové zálohování musíme vyřešit ještě několik drobných
+problémů. Prvním z~nich je to, že postupně se nabalující rozdíly způsobí, že
 při delším provozu zálohovacího systému bude získání nejnovější verze dat trvat
-neúměrně dlouho. Bude totiž nutné začít u první verze a postupně aplikovat
-všechny rozdíly -- to u několika málo verzí ještě nepředstavuje problém, ale
-u několika desítek až stovek verzí to již začne velice zdržovat.
+neúměrně dlouho. Bude totiž nutné začít u~první verze a postupně aplikovat
+všechny rozdíly -- to u~několika málo verzí ještě nepředstavuje problém, ale
+u~několika desítek až stovek verzí to již začne velice zdržovat.
 
 Řešením je omezit maximální hloubku odkazování a pokud by měla být nová verze
-v již moc velké hloubce, uložit ji buď jako kompletní verzi (tedy by se z ní
-stala nová \uv{nultá hladina}), nebo jako diff oproti vhodné verzi v menší
+v~již moc velké hloubce, uložit ji buď jako kompletní verzi (tedy by se z~ní
+stala nová \uv{nultá hladina}), nebo jako diff oproti vhodné verzi v~menší
 hloubce. Zde se dá uplatnit heuristika vybírající nejvhodnější předchozí verzi
-(například s nejmenším diffem).
+(například s~nejmenším diffem).
 
 Druhým problémem, před který se musí reálná implementace postavit, je možnost
 mazat historické zálohy. Dokud byla každá historická verze nezávislá na
 ostatních, tak nás její smazání nic nestálo a nijak neovlivnilo okolní verze.
-U na sebe navazujících rozdílů si takové prosté smazání nemůžeme dovolit,
-protože bychom tím znehodnotili všechny verze navazující v posloupnosti rozdílů
+U~na sebe navazujících rozdílů si takové prosté smazání nemůžeme dovolit,
+protože bychom tím znehodnotili všechny verze navazující v~posloupnosti rozdílů
 na mazanou verzi.
 
-Pokud tedy chceme mazat historické verze (a to je u dlouhodobě fungujícího
+Pokud tedy chceme mazat historické verze (a to je u~dlouhodobě fungujícího
 zálohovacího systému nezbytné), je potřeba implementovat řešení nějakým
 způsobem distribuující mazané změny do navazujících verzí, neboli přepočítávat
 navazující verze, aby zahrnovaly i mazané změny.
@@ -187,11 +187,11 @@ navazující verze, aby zahrnovaly i mazané změny.
 
 Výše popsané způsoby se dají snadno zautomatizovat. Pokud nevyžadují uživatelovo
 aktivní rozhodování během zálohování, lze naplánovat jejich pravidelné spouštění
-v naplánovaných intervalech.
+v~naplánovaných intervalech.
 
 Pro tuto automatizaci lze využít mnoho různých postupů. Buď může zálohovací
 systém stále běžet jako systémová služba (démon) a hlídat si čas plánovaného
-zálohování sám, nebo lze využít například v \gls{UNIX}u dostupný {\it cron} na
+zálohování sám, nebo lze využít například v~\gls{UNIX}u dostupný {\it cron} na
 naplánování spouštění přednastaveného příkazu.
 
 \section{Existující zálohovací systémy}

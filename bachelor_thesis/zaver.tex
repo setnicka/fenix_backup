@@ -2,31 +2,31 @@
 \addcontentsline{toc}{chapter}{Závěr}
 
 Zálohovací systém FenixBackup se pokusil nabídnout další řešení problému
-zálohování dat. V ideálním světe by taková věc vůbec potřeba nebyla, bohužel náš
-svět ideální není, ke ztrátám či poškození dat v něm dochází a systémy jako
+zálohování dat. V~ideálním světe by taková věc vůbec potřeba nebyla, bohužel náš
+svět ideální není, ke ztrátám či poškození dat v~něm dochází a systémy jako
 FenixBackup jsou potřeba.
 
-Častým problémem zálohování je neochota uživatelů strávit čas s jeho
+Častým problémem zálohování je neochota uživatelů strávit čas s~jeho
 nastavováním, nebo jeho složité použití ve chvíli ztráty dat. Proto jsem se
-pokusil při psaní FenixBackup vycházet z principů držet pro uživatele vše co
+pokusil při psaní FenixBackup vycházet z~principů držet pro uživatele vše co
 možná nejpřímočařejší.
 
 Současně jsem se pokusil vyřešit i problém omezeného místa pro zálohy, což
 vnímám jako další důvod, proč se někdy se zálohováním vyskytují problémy. Často
 uživatelé jednou nakonfigurují zálohování a pak věří tomu, že už bude fungovat
 napořád -- bohužel se stává, že zálohovacímu systému dojde místo a uživatelé
-tomu nevěnují pozornost. FenixBackup se k tomu staví tak, že má nastavený limit
+tomu nevěnují pozornost. FenixBackup se k~tomu staví tak, že má nastavený limit
 pro velikost a když je překročen, spustí čištění záloha a maže zálohované verze
-souborů s největším spočteným záporným skóre, dokud nevymaže dostatek dat.
+souborů s~největším spočteným záporným skóre, dokud nevymaže dostatek dat.
 
-Vytvořený zálohovací systém je doufám na počátku dalšího slibného vývoje a zkusím
+Vytvořený zálohovací systém je doufám na počátku dalšího slibného vývoje a~zkusím
 zde nastínit, jakými dalšími směry by se jeho vývoj mohl ubírat.
 
 \newacronym{SMB}{SMB}{Server Message Block, síťový protokol (nejen) pro přenos
 souborů, implementace například projektem Samba}
 
 Jedním směrem vývoje je určitě přidání většího množství adaptérů pro získávání
-dat. V prvotní fázi vývoje byl vytvořen jen adaptér pro lokální souborový
+dat. V~prvotní fázi vývoje byl vytvořen jen adaptér pro lokální souborový
 systém, ale další adaptéry se nabízejí:
 \begin{itemize}
 	\item Adaptér připojující vzdálený souborový systém pomocí \gls{SSHFS}
@@ -44,13 +44,13 @@ systém, ale další adaptéry se nabízejí:
 Dalším možným směrem vývoje je modifikovat datový formát tak, aby mohl obsahovat
 nepovinné rozšiřující položky -- inspirace například hlavičkami IPv6 paketů,
 které obsahují základní společnou hlavičku a pak podle potřeby rozšiřitelné
-hlavičky. V těchto nepovinných položkách by mohl sídlit například systém práv
-\gls{ACL}, který se u nějakých souborů vyskytuje, ale je zbytečné mít pro něj
-vyhrazené pevné datové položky u každého souboru.
+hlavičky. V~těchto nepovinných položkách by mohl sídlit například systém práv
+\gls{ACL}, který se u~nějakých souborů vyskytuje, ale je zbytečné mít pro něj
+vyhrazené pevné datové položky u~každého souboru.
 
-Nápad na to použít takový systém ukládání dat přišel bohužel až v pozdější fázi
+Nápad na to použít takový systém ukládání dat přišel bohužel až v~pozdější fázi
 vývoje systému, kdy již na předělávání současné implementace nebyl dostatek
-času, ale je to jeden z cílů, kterým se chci dále věnovat.
+času, ale je to jeden z~cílů, kterým se chci dále věnovat.
 
 Jinou oblastí, ve které se může udělat ještě velký pokrok, je přidat více
 inteligence do hledání minulých verzí souborů, nebo do hledání vhodných datových
@@ -61,25 +61,25 @@ má vznikat rozdílová záloha (i když zatím se volí buď předchozí znám�
 souboru, nebo prázdný soubor).
 
 Poslední oblast, nad kterou aktuálně přemýšlím a která by neměla být příliš
-složitá k doimplementaci, je nasazení v prostředí zálohování více podobných
+složitá k~doimplementaci, je nasazení v~prostředí zálohování více podobných
 strojů (typicky nějaká firma nebo škola). Dá se vypozorovat, že při zálohování
 většího množství podobných strojů je mnoho souborů napříč stroji stejných
-(systémové soubory, společná konfigurace aj.). V takovém prostředí by bylo velmiTO
+(systémové soubory, společná konfigurace aj.). V~takovém prostředí by bylo velmiTO
 efektivní umět mezi zálohami různých strojů sdílet společná data a zmenšit tak
 celkovou velikost všech záloh.
 
 Pokud bychom deaktivovali systém mazání starých záloh, umí to FenixBackup již
-v současném stavu -- jednotlivé zálohy budou sdílet společnou datovou složku,
+v~současném stavu -- jednotlivé zálohy budou sdílet společnou datovou složku,
 ale budou mít jiné složky, kam ukládají souborové stromy. Protože jsou všechny
-informace, jako jsou práva, uloženy v souborových stromech, a protože jsou
+informace, jako jsou práva, uloženy v~souborových stromech, a protože jsou
 datové bloky identifikovány hashem souboru, který zastupují, tak je možné bez
 jakýkoliv problémů tyto datové bloky sdílet. Problém nastane jen, kdyby jedna
-ze záloh chtěla datové bloky smazat jako nepotřebné -- v tu chvíli by bylo
+ze záloh chtěla datové bloky smazat jako nepotřebné -- v~tu chvíli by bylo
 potřeba sledovat využití datových bloků napříč všemi zálohami ukládajícími do
-stejného místa, pro což je nutné přidat podporu (aby zálohy o sobě navzájem
+stejného místa, pro což je nutné přidat podporu (aby zálohy o~sobě navzájem
 věděly).
 
-FenixBackup je připraven k použití již v současném stavu, ale pevně věřím,
+FenixBackup je připraven k~použití již v~současném stavu, ale pevně věřím,
 že jeho vývoj bude dále pokračovat a dočká se rozšíření ve výše zmíněných
-oblastech a také časem většího nasazení, než jen v řádu jednotek zálohovaných
+oblastech a také časem většího nasazení, než jen v~řádu jednotek zálohovaných
 strojů.

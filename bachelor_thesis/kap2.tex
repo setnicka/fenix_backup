@@ -11,17 +11,17 @@ a základní principy jeho fungování.
 \section{Základní přehled}
 
 FenixBackup je souborově orientovaný zálohovací systém schopný si držet více
-historických verzí souborů. Každý soubor je v něm navíc ukládán nezávisle a tak
+historických verzí souborů. Každý soubor je v~něm navíc ukládán nezávisle a tak
 je možné si od určitých souborů držet více historických záloh, než od jiných.
 
 Ukládání jednotlivých verzí funguje na principu rozdílových záloh ve formátu
-\gls{VCDIFF} s omezením na maximální hloubku na sebe navázaných delta rozdílů.
+\gls{VCDIFF} s~omezením na maximální hloubku na sebe navázaných delta rozdílů.
 
-Další možností bylo ukládat vždy celé nové verze souborů, sdružovat je k sobě
+Další možností bylo ukládat vždy celé nové verze souborů, sdružovat je k~sobě
 a komprimovat, jako to dělá třeba verzovací systém Git (stavějící na myšlence,
 že podobná data vedle sebe se při komprimaci vhodným kompresním algoritmem
 výrazně zmenší), ale zvolil jsem raději cestu přes \gls{VCDIFF}. Při pokusech
-s několika většímu binárními soubory vycházely delta rozdíly menší, než když
+s~několika většímu binárními soubory vycházely delta rozdíly menší, než když
 jsme jednotlivé verze vzal a dohromady zkomprimoval.
 
 Velký důraz byl kladen také na snadnou, přehlednou, ale přitom dostatečně mocnou
@@ -33,9 +33,9 @@ systému přes protokol \texttt{SSH}}
 
 Dalším mým cílem bylo umožnit snadné rozšiřování systému a to jednak ve formě
 zajištění zpětné kompatibility dat, tak také ve snadném rozšiřování systému.
-Příkladem toho je systém {\it adaptérů} pro přístup k zálohovaným datům:
-Existuje společný interface pro komunikaci s adaptéry, ale to, jestli se data
-získají z lokálního filesystému, stáhnout přes \gls{SSHFS}, nebo bude probíhat
+Příkladem toho je systém {\it adaptérů} pro přístup k~zálohovaným datům:
+Existuje společný interface pro komunikaci s~adaptéry, ale to, jestli se data
+získají z~lokálního filesystému, stáhnout přes \gls{SSHFS}, nebo bude probíhat
 komunikace přes rsync protokol, by mělo být samotnému jádru zálohovacího
 systému jedno.
 
@@ -43,17 +43,17 @@ systému jedno.
 
 Zásadní částí dobře fungujícího zálohovacího systému je dobře fungující
 a konfigurovatelný systém pravidel zálohování. Zápis pravidel do konfiguračního
-souboru je ukázán v kapitole vztahující se k uživatelské dokumentaci, zde se
+souboru je ukázán v~kapitole vztahující se k~uživatelské dokumentaci, zde se
 pokusíme rozebrat obecné fungování pravidel.
 
 \subsection{Zálohovací pravidla určená podle cest}
 
-Pravidla je možné specifikovat pro jakoukoliv cestu v zálohovaných datech
+Pravidla je možné specifikovat pro jakoukoliv cestu v~zálohovaných datech
 (kořenová složka zálohy je označována pomocí lomítka: \texttt{/}) a stejnou
-cestu je možné uvést i vícekrát -- v takovém případě platí pro tuto cestu
+cestu je možné uvést i vícekrát -- v~takovém případě platí pro tuto cestu
 poslední specifikovaná pravidla.
 
-Pokud pro nějakou cestu nejsou specifikována pravidla (v reálném případě to bude
+Pokud pro nějakou cestu nejsou specifikována pravidla (v~reálném případě to bude
 pravděpodobně většina cest), použijí se pro ní nejbližší vyšší pravidla po cestě
 ke kořeni. Je možné tak třeba zakázat zálohování určitých složek.
 
@@ -76,10 +76,10 @@ ke kořeni. Je možné tak třeba zakázat zálohování určitých složek.
 
 Mimo pravidel odvozených jen od cest existují také pravidla umožňující pokrýt
 třeba jen určitý typ souboru. Jsou také vázána na konkrétní cestu (a platí tak
-jen v určeném podstromě), ale je možné u nich zavést složitější způsoby
+jen v~určeném podstromě), ale je možné u~nich zavést složitější způsoby
 filtrování.
 
-Pro každou cestu je možné v konfiguraci uvést seznam {\it pravidel pro soubory},
+Pro každou cestu je možné v~konfiguraci uvést seznam {\it pravidel pro soubory},
 kde každé pravidlo má parametry, které nastavuje, a pak filtry určující, na jaké
 soubory se má aplikovat. Je možné filtrovat podle následujících parametrů:
 
@@ -88,14 +88,14 @@ soubory se má aplikovat. Je možné filtrovat podle následujících parametrů
 	pokud je nevyplněný či prázdný, odpovídá jakýkoliv soubor, pokud je
 	neprázdný, musí celý název souboru (jen souboru, bez cesty) odpovídat
 	zadanému regexu.
-	\item Regex cesty k souboru (\texttt{path\_regex}) -- podobně jako výše,
+	\item Regex cesty k~souboru (\texttt{path\_regex}) -- podobně jako výše,
 	nevyplněnému odpovídá vše, vyplněnému jen soubory, které se nacházejí
 	(oproti aktuálnímu adresáři) na cestě odpovídající regexu.
-	\item Minimální a maximální velikost souboru v bytech (parametry
+	\item Minimální a maximální velikost souboru v~bytech (parametry
 	\texttt{size\_at\_least} a \texttt{size\_at\_most}).
 \end{itemize}
 
-Jednotlivá pravidla se vždy aplikují v pořadí, v jakém jsou uvedena v konfiguraci,
+Jednotlivá pravidla se vždy aplikují v~pořadí, v~jakém jsou uvedena v~konfiguraci,
 a funguje zde princip přepisování (tedy pokud je splněna podmínka pravidla, jsou
 přepsány všechny parametry zálohování, které pravidlo nastavuje).
 
@@ -103,83 +103,83 @@ přepsány všechny parametry zálohování, které pravidlo nastavuje).
 
 \noindent Při dotazu na konkrétní soubor se pak parametry pravidel určí takto:
 \begin{enumerate}
-	\item Vezmou se defaultní hodnoty pravidel a začne se v kořenové složce.
-	\item V aktuální složce se nejdříve aplikují pravidla složky (pokud
+	\item Vezmou se defaultní hodnoty pravidel a začne se v~kořenové složce.
+	\item V~aktuální složce se nejdříve aplikují pravidla složky (pokud
 	existují) a poté se projdou všechny pravidla pro soubory:
-	\item Pokud vyhovuje filtr u pravidla pro soubory, aplikuje se.
-	\item Pokud se dá po zadané cestě sestoupit ještě o úroveň níže, sestoupí
-	se a opakuje se znovu od bodu 2.
+	\item Pokud vyhovuje filtr u~pravidla pro soubory, aplikuje se.
+	\item Pokud se dá po zadané cestě sestoupit ještě o~úroveň níže, sestoupí
+	se a~opakuje se znovu od bodu~2.
 \end{enumerate}
 
 Nakonec se vrátí finální pravidla vzniklá aplikací všech pravidel, přes která se
 prošlo. Toto řešení nabízí velmi silné možnosti konfigurace, bohužel cacheování
-výsledků je zde vzhledem k pravidlům s filtry značně obtížné, pro běžně velké
+výsledků je zde vzhledem k~pravidlům s~filtry značně obtížné, pro běžně velké
 konfigurační soubory by ale rychlost i tak měla být dostatečná a úzkým hrdlem
-zde stále bude rychlost načítání dat z disku.
+zde stále bude rychlost načítání dat z~disku.
 
 \section{Model ukládání dat}
 
-FenixBackup představuje každou zálohu (ať už se v rámci ní zálohovaly všechny
+FenixBackup představuje každou zálohu (ať už se v~rámci ní zálohovaly všechny
 soubory, nebo se povedlo zálohovat pouze jediný) jedním souborovým stromem. Ten
-obsahuje všechny záznamy o všech souborech, které by se měly dostat do zálohy.
+obsahuje všechny záznamy o~všech souborech, které by se měly dostat do zálohy.
 
-Při svém vzniku obsahuje tento strom jen informace zjistitelné o souborech bez
+Při svém vzniku obsahuje tento strom jen informace zjistitelné o~souborech bez
 nutnosti číst jejich obsah (to zajistí příslušný adaptér, viz následující
-podkapitola) a postupně se zpracováním obsahu jednotlivých souborů se v něm
+podkapitola) a postupně se zpracováním obsahu jednotlivých souborů se v~něm
 objevují i kontrolní součty (hashe) souborů, které odkazují na konkrétní datové
 bloky.
 
-\newacronym{SHA256}{SHA256}{Kryptografická hashovací funkce, vytváří otisk o
-velikosti 256 bitů}
+\newacronym{SHA256}{SHA256}{Kryptografická hashovací funkce, vytváří otisk
+o~velikosti 256 bitů}
 
 Každý uložený soubor je jednoznačně identifikován svým \gls{SHA256} hashem
-a představován stejnojmenným datovým blokem. Tento datový blok může být buď
+a~představován stejnojmenným datovým blokem. Tento datový blok může být buď
 úplný, nebo je to jen \gls{VCDIFF} oproti jinému datovému bloku.
 
-Pro fungování zálohovacího systému předpokládáme, že nalezení kolize v
-kryptografické hashovací funkci jako je \gls{SHA256} je extrémně
+Pro fungování zálohovacího systému předpokládáme, že nalezení kolize
+v~kryptografické hashovací funkci jako je \gls{SHA256} je extrémně
 nepravděpodobné (zatím není známý ani cílený útok, který by uměl vyprodukovat
 kolizi, a velikost kolizní domény je $2^{256}$). Na stejném předpokladu
-o nepravděpodobných kolizích v reálném nasazení staví i verzovací systém Git,
+o~nepravděpodobných kolizích v~reálném nasazení staví i verzovací systém Git,
 který navíc používá jen kratší hashe generované \gls{SHA1}.
 
 Díky tomu, že jsou datové bloky pojmenovány hashem souboru, který mají
 představovat, řeší se velmi efektivním způsobem duplikáty souborů. Ačkoliv třeba
 dva stejné soubory mohou mít úplně rozdílnou historii, tak finálně je uložen
-v zálohovacím systému jen jeden datový blok, který představuje oba soubory.
+v~zálohovacím systému jen jeden datový blok, který představuje oba soubory.
 
 Datové bloky a jejich případné rozdílové návaznosti tedy vůbec nemusí
-korespondovat s historií jednotlivých souborů uloženou v souborových stromech.
-Ale díky tomu, že v souborovém stromu je uložený hash každé jednotlivé verze
+korespondovat s~historií jednotlivých souborů uloženou v~souborových stromech.
+Ale díky tomu, že v~souborovém stromu je uložený hash každé jednotlivé verze
 souboru, lze všechny historické verze snadno zrekonstruovat.
 
-Záznam o každém jednotlivém souboru se může navíc nacházet v jednom z
-následujících stavů:
+Záznam o~každém jednotlivém souboru se může navíc nacházet v~jednom
+z~následujících stavů:
 \begin{itemize}
-	\item\texttt{UNKNOWN} -- Nový soubor (bez známé minulé verze), u kterého
+	\item\texttt{UNKNOWN} -- Nový soubor (bez známé minulé verze), u~kterého
 	zatím nemáme zálohovaný jeho obsah.
-	\item\texttt{NEW} -- Nový soubor (bez známé minulé verze), u kterého již
+	\item\texttt{NEW} -- Nový soubor (bez známé minulé verze), u~kterého již
 	máme uložený a zpracovaný jeho obsah.
 	\item\texttt{UNCHANGED} -- Soubor se známou minulou verzí, který se
 	nezměnil (ani parametry, ani obsahem).
-	\item\texttt{UPDATED\_PARAMS} -- Soubor se známou minulou verzí, u kterého
+	\item\texttt{UPDATED\_PARAMS} -- Soubor se známou minulou verzí, u~kterého
 	se změnily pouze parametry, ale obsah ne.
-	\item\texttt{NOT\_UPDATED} -- Soubor se známou minulou verzí, u kterého
-	se změnil i obsah, a jenž ještě nemáme uložený.
-	\item\texttt{UPDATED\_FILE} -- Soubor se známou minulou verzí, u kterého
-	se změnil i obsah, a jenž již máme uložený a zpracovaný.
-	\item\texttt{DELETED} -- Soubor byl z nějakého důvodu vymazán (ať už na
+	\item\texttt{NOT\_UPDATED} -- Soubor se známou minulou verzí, u~kterého
+	se změnil i~obsah, a jenž ještě nemáme uložený.
+	\item\texttt{UPDATED\_FILE} -- Soubor se známou minulou verzí, u~kterého
+	se změnil i~obsah, a jenž již máme uložený a zpracovaný.
+	\item\texttt{DELETED} -- Soubor byl z~nějakého důvodu vymazán (ať už na
 	přímé přání uživatele, nebo automaticky při uvolňování místa).
 \end{itemize}
 
-\section{Adaptéry pro přístup k zálohovaným datům}
+\section{Adaptéry pro přístup k~zálohovaným datům}
 
-Zálohovací systém je psán tak, aby byl nezávislý na metodě přístupu k zálohovaným
-datům. Samotnému jádru je jedno, jak data získá, o to se starají takzvané
+Zálohovací systém je psán tak, aby byl nezávislý na metodě přístupu k~zálohovaným
+datům. Samotnému jádru je jedno, jak data získá, o~to se starají takzvané
 {\it adaptéry}.
 
-V úloze zálohování se dají jejich úkoly rozdělit do dvou fází. V první fázi
-získávají adaptéry informace o souborech a předávají je jádru zálohovacího
+V~úloze zálohování se dají jejich úkoly rozdělit do dvou fází. V~první fázi
+získávají adaptéry informace o~souborech a předávají je jádru zálohovacího
 systému, ve druhé fázi jim pak jádro zálohovacího systému dodá seznam souborů,
 které chce získat, a adaptér nějakým způsobem opatří jejich obsah a dodá je
 nazpět jádru.
@@ -187,19 +187,19 @@ nazpět jádru.
 První fáze začíná tím, že adaptér začne skenovat systém souborů od zadaného
 místa, načítá parametry souborů (vlastník, práva, velikost, \dots) a ukládá tyto
 záznamy do souborového stromu. Jádro zálohovacího systému všechny ukládané
-záznamy zpracovává a může případně operativně rozhodnout, že ho informace v nějakém
-podstromě již nezajímají (třeba v případě nastavení \texttt{scan: false} pro
-nějakou cestu v konfiguraci). V takovém případě to dá domluveným způsobem vědět
+záznamy zpracovává a může případně operativně rozhodnout, že ho informace v~nějakém
+podstromě již nezajímají (třeba v~případě nastavení \texttt{scan: false} pro
+nějakou cestu v~konfiguraci). V~takovém případě to dá domluveným způsobem vědět
 adaptéru a ten by již tento podstrom neměl dále procházet.
 
 Během této fáze se jádro zálohovacího systému pokouší (podle cesty, času poslední
-modifikace a velikosti souborů) rozhodnout, které soubory se nezměnily, u kterých
+modifikace a velikosti souborů) rozhodnout, které soubory se nezměnily, u~kterých
 se změnily pouze parametry, a které soubory bude potřeba stáhnout pro uložení
 jejich nové verze.
 
 Seznam požadovaných souborů (utříděný podle prioritizační funkce, viz dále) pak
-předá nazpět adaptéru a ten by měl zařídit získání obsahu těchto souborů a
-předání obsahu jádru zálohovacího systému.
+předá nazpět adaptéru a ten by měl zařídit získání obsahu těchto souborů
+a~předání obsahu jádru zálohovacího systému.
 
 To si spočte hash souborů, zjistí, zdali případně nemá již soubor se stejným
 hashem uložený, a pokud ne, uloží nový datový blok (buď jako kompletní datový
@@ -208,12 +208,12 @@ blok, nebo jako \gls{VCDIFF} oproti jinému).
 \section{Priorita zálohovaných souborů}
 
 Různé soubory mohou mít konfigurací jinak nastavené priority zálohování, čímž
-lze zálohovacímu systému sdělit, o které soubory máme větší zájem.
+lze zálohovacímu systému sdělit, o~které soubory máme větší zájem.
 
 Do rozhodovacího procesu se také promítá to, jakou nejmladší verzi daného
 souboru již máme uloženou. Systém je totiž připravený i na to, že ne vždy se
-povede provést kompletní zálohu, například u přenosných počítačů připojených k
-rychlé síti jen po omezenou dobu. V takovém případě zůstanou některé soubory ve
+povede provést kompletní zálohu, například u~přenosných počítačů připojených
+k~rychlé síti jen po omezenou dobu. V~takovém případě zůstanou některé soubory ve
 stromu se stavem \texttt{UNKNOWN} nebo \texttt{NOT\_UPDATED} a další zálohy na
 to berou ohled (soubory, jež se nepovedlo zálohovat delší dobu, mají při příštím
 zálohování přednost).
@@ -225,8 +225,8 @@ $$[\hbox{čas od poslední zálohované verze}]\times[\hbox{priorita souboru}]$$
 
 Pokud soubor nemá známou minulou verzi, tak se jako čas poslední zálohované
 verze bere čas minulého spuštění zálohování -- protože tento nový soubor se mohl
-objevit kdykoliv v mezičase mezi touto poslední zálohou a současností.
+objevit kdykoliv v~mezičase mezi touto poslední zálohou a současností.
 
-Tímto postupem by se mělo zajistit zálohování postupně všech souborů i v případě,
-že zálohovaný stroj bývá připojen k zálohovacímu systému pravidelně jen po
+Tímto postupem by se mělo zajistit zálohování postupně všech souborů i v~případě,
+že zálohovaný stroj bývá připojen k~zálohovacímu systému pravidelně jen po
 omezenou dobu.
