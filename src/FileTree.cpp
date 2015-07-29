@@ -34,6 +34,7 @@ class FileTree::FileTreeData {
 	std::vector<std::shared_ptr<FileInfo>> files;
 	std::unordered_map<std::string, std::shared_ptr<FileInfo>> file_hashes;
 	bool loaded_arrays = false;
+	std::shared_ptr<FileTree> this_tree;
 
     std::vector<std::pair<std::shared_ptr<FileInfo>, int>> files_to_process;
 
@@ -66,25 +67,30 @@ class FileTree::FileTreeData {
         // Construct arrays files and file_hashes
         files.push_back(nullptr);
         files.push_back(root);
-        load_arrays(root);
+        LoadArrays(root);
         loaded_arrays = true;
     }
 
-    void load_arrays(std::shared_ptr<FileInfo> node) {
+    void LoadArrays(std::shared_ptr<FileInfo> node) {
         if(node->GetId() >= files.size()) files.resize(node->GetId() + 1);
         files[node->GetId()] = node;
 
         if (node->GetType() == DIR) {
-            for(auto file: node->GetChilds()) load_arrays(file.second);
+            for(auto file: node->GetChilds()) LoadArrays(file.second);
         } else {
             file_hashes.insert(std::make_pair(node->GetHash(), node));
         }
+    }
+
+    void UpdateTreeLinks() {
+         // Register this_tree as tree in each FileInfo
+        for(auto& file: files) if (file != nullptr) file->SetTree(this_tree);
     }
 };
 
 FileTree::FileTreeData::FileTreeData(bool initialize) {
     if (!initialize) return;
-    root = std::make_shared<FileInfo>(DIR, nullptr, "");
+    root = std::make_shared<FileInfo>(this_tree, DIR, nullptr, "");
     root->SetId(1); root->SetPrevVersionId(1);
     files.push_back(nullptr);
     files.push_back(root);
@@ -114,9 +120,9 @@ void FileTree::FileTreeData::CountScore(std::shared_ptr<FileInfo> file, const Co
     // Score = time_from_last_backup * priority;
     int age;
     if (prev_version_tree_name.empty()) age = 1;
-    else if (file->GetPrevVersionId() == 0) age = construct_time - FileTree::GetHistoryTree(tree_name)->GetPrevTree()->GetConstructTime();
+    else if (file->GetPrevVersionId() == 0) age = construct_time - this_tree->GetPrevTree()->GetConstructTime();
     else {
-        auto tree = FileTree::GetHistoryTree(tree_name)->GetPrevTree();
+        auto tree = this_tree->GetPrevTree();
         auto prev_file = tree->GetFileById(file->GetPrevVersionId());
         while (tree->GetPrevTree() != nullptr && prev_file->GetPrevVersionId() != 0
             && (prev_file->GetStatus() == UNKNOWN || prev_file->GetStatus() == NOT_UPDATED)
@@ -152,7 +158,7 @@ std::shared_ptr<FileInfo> FileTree::GetRoot() { return data->root; }
 
 const std::vector<std::shared_ptr<FileInfo>>& FileTree::GetAllFiles() {
     if (!data->loaded_arrays) {
-        data->load_arrays(GetRoot());
+        data->LoadArrays(GetRoot());
         data->loaded_arrays = true;
     }
     return data->files;
@@ -192,12 +198,16 @@ std::shared_ptr<FileTree> FileTree::GetHistoryTree(std::string name) {
         if(!std::ifstream(Config::GetTreeFilename(name)).good()) return nullptr;
 		history_trees.insert(std::make_pair(name, std::make_shared<FileTree>(name)));
     }
+    history_trees[name]->data->this_tree = history_trees[name];
+    history_trees[name]->data->UpdateTreeLinks();
 	return history_trees[name];
 }
 
 std::shared_ptr<FileTree> FileTree::CreateNewTree() {
     auto tree = std::make_shared<FileTree>();
     history_trees.insert(std::make_pair(tree->GetTreeName(), tree));
+    tree->data->this_tree = tree;
+    tree->data->UpdateTreeLinks();
     return tree;
 }
 
@@ -220,7 +230,7 @@ std::shared_ptr<FileInfo> FileTree::FileTreeData::AddNode(file_type type, std::s
     auto rules = Config::GetRules(parent->GetPath() + "/" + name, params);
     if ((type == DIR && !rules.scan) || (type == FILE && !rules.backup) ) return nullptr;
 
-	auto file = std::make_shared<FileInfo>(type, parent, name);
+	auto file = std::make_shared<FileInfo>(this_tree, type, parent, name);
 	file->SetParams(params);
 	parent->AddChild(name, file);
 

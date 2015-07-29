@@ -10,10 +10,14 @@ namespace FenixBackup {
 
 class BackupCleaner::BackupCleanerData {
   public:
-    BackupCleanerData() {}
+    time_t cleanup_time;
+
+    BackupCleanerData() {
+        std::time(&cleanup_time);
+    }
 
     struct chunk_info {
-        int baddness;
+        unsigned int baddness = -1;
         std::vector<std::pair<int, int>> file_records;
     };
 
@@ -22,6 +26,8 @@ class BackupCleaner::BackupCleanerData {
     std::unordered_set<std::shared_ptr<FileInfo>> files_used;
 
     void AddFile(int index, std::shared_ptr<FileTree> tree, std::shared_ptr<FileInfo> file);
+
+    void CountBaddness(unsigned int index, unsigned int subindex);
 };
 
 BackupCleaner::BackupCleaner(): data{new BackupCleaner::BackupCleanerData()} {}
@@ -46,6 +52,30 @@ void BackupCleaner::BackupCleanerData::AddFile(int index, std::shared_ptr<FileTr
     files_used.insert(file);
 }
 
+void BackupCleaner::BackupCleanerData::CountBaddness(unsigned int index, unsigned int subindex) {
+    auto file = files[index][subindex];
+    auto rules = Config::GetRules(file->GetPath(), file->GetParams());
+
+    // 1. Count min_distance
+    unsigned int baddness = 0;
+    // age (seconds) --> min_distance
+    int age = file->GetTree()->GetConstructTime() - cleanup_time;
+    int min_distance = age/10; // TODO
+
+    // 2. Count baddness from neigtbours distance
+    if (subindex != 0) {
+            int distance1 = files[index][subindex-1]->GetTree()->GetConstructTime() - file->GetTree()->GetConstructTime();
+            baddness += (100*min_distance)/(distance1*rules.history);
+    }
+    if (subindex != files[index].size() - 1) {
+            int distance2 = file->GetTree()->GetConstructTime() - files[index][subindex+1]->GetTree()->GetConstructTime();
+            baddness += (100*min_distance)/(distance2*rules.history);
+    }
+
+    // Update chunk min baddness
+    if (baddness < chunks[file->GetHash()].baddness) chunks[file->GetHash()].baddness = baddness;
+}
+
 void BackupCleaner::LoadData() {
     // 1. Scan all trees and construct file lists and global chunk list
     std::vector<std::string> trees = FileTree::GetHistoryTreeList();
@@ -64,7 +94,19 @@ void BackupCleaner::LoadData() {
         }
     }
 
-    // 2. TODO...
+    // 2. Initialize chunks baddness and for each file list run baddness count function
+    for (uint i = 0; i < data->files.size(); i++)
+        for (uint j = 0; j < data->files[i].size(); j++) data->CountBaddness(i, j);
+
+    // 3. Some sort -- TODO
+}
+
+size_t BackupCleaner::Clean() {
+    // 1. Get chunk with greatest baddness
+
+    // 2. Delete this chunk, count free size
+
+    // 3. Update chunks baddness and (re)sort them?
 }
 
 }

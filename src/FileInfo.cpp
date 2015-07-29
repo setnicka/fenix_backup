@@ -34,11 +34,12 @@ class FileInfo::FileInfoData {
 
     // Cache (not serialize)
     std::string path;
+    std::shared_ptr<FileTree> tree;
 
-	FileInfoData(file_type type, std::shared_ptr<FileInfo> parent, std::string const& name):
-		type{type}, parent{parent}, name{name} {}
+	FileInfoData(std::shared_ptr<FileTree> tree, file_type type, std::shared_ptr<FileInfo> parent, std::string const& name):
+		type{type}, parent{parent}, name{name}, tree{tree} {}
 
-    FileInfoData() : FileInfoData(DIR, nullptr, "") {}
+    FileInfoData() : FileInfoData(nullptr, DIR, nullptr, "") {}
 
     template <class Archive>
     void serialize(Archive & ar, std::uint32_t const version) {
@@ -58,9 +59,9 @@ class FileInfo::FileInfoData {
 };
 
 // Constructors
-FileInfo::FileInfo(file_type type, std::shared_ptr<FileInfo> parent, std::string const& name):
-	data{new FileInfoData(type, parent, name)} {}
-FileInfo::FileInfo(): FileInfo(DIR, nullptr, "") {}
+FileInfo::FileInfo(std::shared_ptr<FileTree> tree, file_type type, std::shared_ptr<FileInfo> parent, std::string const& name):
+	data{new FileInfoData(tree, type, parent, name)} {}
+FileInfo::FileInfo(): FileInfo(nullptr, DIR, nullptr, "") {}
 
 FileInfo::~FileInfo() {}
 
@@ -169,6 +170,7 @@ void FileInfo::SetStatus(version_file_status status) { data->version_status = st
 void FileInfo::SetId(unsigned int index) { data->file_index = index; }
 void FileInfo::SetPrevVersionId(unsigned int index) { data->prev_version_id = index; }
 void FileInfo::SetHash(const std::string& file_hash) { data->file_hash = file_hash; }
+void FileInfo::SetTree(std::shared_ptr<FileTree> tree) { data->tree = tree; }
 
 // Getters
 const file_params& FileInfo::GetParams() { return data->params; }
@@ -187,6 +189,7 @@ const std::string& FileInfo::GetPath() {
 std::shared_ptr<FileInfo> FileInfo::GetParent() { return data->parent; }
 unsigned int FileInfo::GetPrevVersionId() { return data->prev_version_id; }
 const std::string& FileInfo::GetHash() { return data->file_hash; }
+std::shared_ptr<FileTree> FileInfo::GetTree() { return data->tree; }
 
 }
 CEREAL_CLASS_VERSION(FenixBackup::FileInfo::FileInfoData, 1);

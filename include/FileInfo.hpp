@@ -17,7 +17,7 @@ namespace FenixBackup {
 class FileInfo {
   public:
 	FileInfo();
-	FileInfo(file_type type, std::shared_ptr<FileInfo> parent, std::string const& name);
+	FileInfo(std::shared_ptr<FileTree> tree, file_type type, std::shared_ptr<FileInfo> parent, std::string const& name);
 	virtual ~FileInfo();
 	/*FileInfo(const FileInfo& other);
 	FileInfo& operator=(const FileInfo& other);*/
@@ -30,12 +30,14 @@ class FileInfo {
 	const std::string& GetPath();
 	unsigned int GetPrevVersionId();
 	const std::string& GetHash();
+	std::shared_ptr<FileTree> GetTree();
 
 	void SetParams(const file_params& params);
 	void SetStatus(version_file_status status);
 	void SetId(unsigned int index);
 	void SetPrevVersionId(unsigned int index);
 	void SetHash(const std::string& file_hash);
+	void SetTree(std::shared_ptr<FileTree> tree);
 
 	std::shared_ptr<FileInfo> GetPrevVersion();
 	std::shared_ptr<FileInfo> GetParent();
