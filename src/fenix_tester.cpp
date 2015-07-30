@@ -43,8 +43,12 @@ int main() {
         std::cout << "Saving tree" << std::endl;
         tree->SaveTree();
 
+        std::cout << "Loading data for BackupCleaner" << std::endl;
         FenixBackup::BackupCleaner cleaner;
         cleaner.LoadData();
+        std::cout << "Deleting first file chunk, size change: " << cleaner.Clean() << std::endl;
+        std::cout << "Deleting second file chunk, size change: " << cleaner.Clean() << std::endl;
+        cleaner.Clean();
 
         //std::cout << "Restoring data" << std::endl;
         //adapter->RestoreSubtreeToLocalPath(tree->GetRoot(), "/tmp/pokus");
