@@ -25,10 +25,10 @@ class FileChunk {
     const std::string& GetAncestorName();
     size_t GetSize();
 
-    /// Skip one level of ancestor and conpute new VCDIFF
-    void SkipAncestor();
-    /// Delete this chunk and call SkipAncestor on all its childs
-    void DeleteChunk();
+    /// Skip one level of ancestor and conpute new VCDIFF, return size change
+    int SkipAncestor();
+    /// Delete this chunk and call SkipAncestor on all its childs, return size change
+    int DeleteChunk();
 
     void AddDerivedChunk(std::string);
     void RemoveDerivedChunk(std::string);

@@ -13,8 +13,8 @@ class BackupCleaner {
 
     void LoadData();
 
-    /// Delete one file chunk and return the ammount of
-    size_t Clean();
+    /// Delete one file chunk and return the size change after delete
+    int Clean();
   private:
     class BackupCleanerData;
     std::unique_ptr<BackupCleanerData> data;

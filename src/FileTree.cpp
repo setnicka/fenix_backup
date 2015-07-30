@@ -35,6 +35,7 @@ class FileTree::FileTreeData {
 	std::unordered_map<std::string, std::shared_ptr<FileInfo>> file_hashes;
 	bool loaded_arrays = false;
 	std::shared_ptr<FileTree> this_tree;
+	bool in_tree_list = true;
 
     std::vector<std::pair<std::shared_ptr<FileInfo>, int>> files_to_process;
 
@@ -90,6 +91,7 @@ class FileTree::FileTreeData {
 
 FileTree::FileTreeData::FileTreeData(bool initialize) {
     if (!initialize) return;
+    in_tree_list = false; // It is new tree
     root = std::make_shared<FileInfo>(this_tree, DIR, nullptr, "");
     root->SetId(1); root->SetPrevVersionId(1);
     files.push_back(nullptr);
@@ -325,6 +327,8 @@ void FileTree::SaveTree() {
     // Need to unallocate archive (to finish the data) before closing ofstream
     os.close();
     rename(temp_name.c_str(), Config::GetTreeFilename(data->tree_name).c_str());
+
+    if (!data->in_tree_list) FileTree::history_trees_list.clear(); // To recache this
 }
 
 std::shared_ptr<FileTree> FileTree::GetPrevTree() { return GetHistoryTree(data->prev_version_tree_name); }

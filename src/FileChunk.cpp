@@ -154,7 +154,8 @@ const std::string& FileChunk::GetAncestorName() { return data->ancestor_chunk_na
 int FileChunk::GetDepth() { return data->depth; }
 size_t FileChunk::GetSize() { return data->chunk_size; }
 
-void FileChunk::SkipAncestor() {
+int FileChunk::SkipAncestor() {
+    size_t old_size = data->chunk_size;
     // 1. Get new ancestor
     if (data->ancestor_chunk_name.empty()) throw FileChunkException("FileChunk '"+data->chunk_name+"' has no ancestor, cannot skip ancestor\n");
     auto ancestor = GetChunk(data->ancestor_chunk_name);
@@ -166,14 +167,20 @@ void FileChunk::SkipAncestor() {
     auto content = LoadAndReturn();
 
     ProcessStringAndSave(new_ancestor_name, content);
+    size_t new_size = data->chunk_size;
+    return new_size - old_size;
 }
 
-void FileChunk::DeleteChunk() {
+int FileChunk::DeleteChunk() {
+    int size_change = -data->chunk_size;
     for (auto& chunk_name: data->derived_chunks) {
-        GetChunk(chunk_name)->SkipAncestor();
+        size_change += GetChunk(chunk_name)->SkipAncestor();
     }
     remove(Config::GetChunkFilename(data->chunk_name).c_str());
     remove(Config::GetChunkFilename(data->chunk_name, true).c_str());
+    if (!data->ancestor_chunk_name.empty()) GetChunk(data->ancestor_chunk_name)->RemoveDerivedChunk(data->chunk_name);
+    loaded_chunks.erase(data->chunk_name);
+    return size_change;
 }
 
 void FileChunk::AddDerivedChunk(std::string name) {

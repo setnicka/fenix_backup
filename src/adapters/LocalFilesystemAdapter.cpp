@@ -156,6 +156,7 @@ void LocalFilesystemAdapter::RestoreFileToLocalPath(std::shared_ptr<FileInfo> fi
     if (mode != ONLY_PERMISSIONS) {
         // version status NOT_UPDATED, UNKNOWN or DELETED
         if (file->GetType() != DIR && file->GetHash().empty()) return;
+        if (file->GetStatus() == DELETED) return;
 
         if (file->GetType() == DIR) {
             if (!boost::filesystem::exists(final_path)) {
