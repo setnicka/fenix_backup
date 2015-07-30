@@ -99,6 +99,17 @@ Zbytek veřejných metod jsou pak buď settery nebo gettery na vlastnosti soubor
 	na {\it FileInfo}
 \end{itemize}
 
+\subsection{BackupClean}
+
+Tato třída se stará o mazání starých verzí záloh. Obsahuje dvě metody, z nichž
+první si načte do paměti všechny souborové stromy, analyzuje je a spočítá
+badness (viz kapitola tomu věnovaná) a druhá metoda vždy obstará smazání jednoho
+datového bloku a vrátí, kolik dat bylo celkově uvolněno:
+\begin{itemize}
+	\item\texttt{LoadData()}
+	\item\texttt{Clean()} $\rightarrow$ uvolněné místo (v bytech)
+\end{itemize}
+
 \subsection{Ostatní třídy}
 
 Třída {\it FileChunk} představuje jednotlivé datové bloky. Každá instance třídy
@@ -113,6 +124,9 @@ Pro komunikaci s~adaptéry je pak definována abstraktní třída {\it Adapter}
 obsahující metody pro proskenování a vytvoření souborového stromu, pro
 zpracování obsahu souboru a pro obnovení souboru na původní, nebo na zadané
 místo.
+
+A konečně, jako uživatelské rozhraní existuje třída {\it CLI} (zkratka od
+{\it command-line-interface}).
 
 \section{Externí knihovny}
 
@@ -336,7 +350,7 @@ soubor dostupný, určuje se podle dalšího parametru předávaného obnovovac�
 funkcím. Výchozí chování je to, že v~takovém případě se pokusí systém nalézt
 nejnovější zálohovanou verzi souboru a obnoví tu (zde si můžeme všimnout, že
 starší verzi má smysl hledat jen u~souborů označených jako
-\texttt{NOT\_UPDATED}, u~souborů označených \texttt{UNKNOWN} ne). Alterantivním
+\texttt{NOT\_UPDATED}, u~souborů označených \texttt{UNKNOWN} ne). Alternativním
 chováním je obnova pouze těch dat, která jsou odkazovaná aktuálním stromem
 (neuložené soubory jsou přeskakovány).
 
@@ -397,9 +411,14 @@ smazání vždy jednoho datového bloku s~největší badness. Postup je tedy ta
 Při načítání se nejprve vytvoří pro každou známou navazující posloupnost souborů
 jeden jejich vektor (aby bylo možné snadno nalézt o~jedna novější a o~jedna
 starší verzi souboru). Pak se pro každý záznam o~souboru spočítá badness podle
-tohoto vzorce:
+vzorce:
 
-$$TODO\over[\hbox{hodnota \texttt{history} z konfigurace}]$$
+$$B = {[\hbox{stáří zálohy}]\over[\hbox{vzdálenost nejbližší starší zálohy}]}
++{[\hbox{stáří zálohy}]\over[\hbox{vzdálenost nejbližší mladší zálohy}]}$$
+$$\hbox{badness} = {B\over[\hbox{hodnota \texttt{history} z konfigurace}]}$$
+
+Tento vzorec vlastně znamená, že čím starší záloha, tím větší volné místo okolo
+sebe vyžaduje pro zachování stejně badness, což je přesně to, co jsme chtěli.
 
 Ze spočítaných badness se vybere pro každý datový blok ta nejmenší a pak se
 tato hodnota ještě vydělí pro každý datový blok počtem na něj navazujících bloků

@@ -1,7 +1,7 @@
-\chapter{Uživatelská dokumentace zálohovacího systému FenixBackup}
+\chapter{Uživatelská dokumentace}
 
 FenixBackup se v~současnosti ovládá z~příkazové řádky, ale do budoucna není
-problém nad samotným jádrem postavit více jinak fungujících rozhranní (třeba
+problém nad samotným jádrem postavit více jinak fungujících rozhraní (třeba
 GUI). Pro jeho fungování je nezbytný konfigurační soubor, který popisuje co,
 jakým způsobem a kam se má zálohovat.
 
@@ -45,7 +45,8 @@ paths: (
       @include "no_exe.config"
     )
   },
-  { path: "/.git"
+  {
+    path: "/.git"
     scan: false
   },
   { path: "/test_backup/"
@@ -88,4 +89,36 @@ Základem je spuštění příkazu \texttt{fenix}, kterému se vždy předá ces
 konfiguračnímu souboru a poté příkaz, který chceme provést. Inspirací pro
 rozhraní bylo zčásti rozhraní verzovacího systému Git (viz \cite{progit}).
 
-TODO
+Pomocí tohoto rozhraní lze provádět všechny potřebné akce:
+\begin{itemize}
+	\item Zobrazit seznam záloh
+	\item Zobrazit seznam souborů v záloze
+	\item Sledovat historii jednoho konkrétního souboru
+	\item Provést zálohu nebo čištění
+	\item Obnovit jeden soubor, podstrom nebo všechny soubory z určené zálohy
+	buď do původního místa, nebo do specifikované cesty
+\end{itemize}
+
+\newpage
+\subsection{Popis příkazů}
+
+Přesné použití rozhraní nejlépe popisuje usage-note příkazu \texttt{fenix}:
+\begin{verbatim}
+Usage: ./fenix <config_file>
+And one of these commands:
+  show backups			(displays list of all backups)
+  show files [<backup>]		(displays list of all files in given backup)
+  show history <backup> <path>	(displays known history of given file)
+  backup			(run backup)
+  restore full <backup>		(run full restore to original path)
+  restore full <backup> <path>	(run full restore to given path)
+  restore subtree <backup> <subtree_path>
+				(restore subtree to original path)
+  restore subtree <backup> <subtree_path> <path>
+				(restore subtree to given path)
+  restore file <backup> <file_path>
+				(restore one file to original path)
+  restore file <backup> <file_path> <path>
+				(restore one file to given path)
+  cleanup [<x>]			(run <x> rounds of cleanup, default 1)
+\end{verbatim}
