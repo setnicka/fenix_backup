@@ -110,7 +110,7 @@ std::ostream& FileInfo::GetFileContent(std::ostream& out) {
     if (data->file_hash.empty()) throw FileInfoException("Cannot get file content of unsaved file\n");
 
     auto chunk = FileChunk::GetChunk(data->file_hash);
-    out << chunk->LoadAndReturn();
+    if (chunk != nullptr) out << chunk->LoadAndReturn();
     return out;
 }
 

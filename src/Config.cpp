@@ -6,6 +6,8 @@
 #include "Config.hpp"
 #include "FenixExceptions.hpp"
 
+#include "adapters/LocalFilesystemAdapter.hpp"
+
 namespace FenixBackup {
 
 bool Config::loaded = false;
@@ -83,6 +85,16 @@ std::shared_ptr<Config::Dir> Config::Dir::GetSubdir(const std::string& subdir, b
         subdirs.insert(std::make_pair(subdir, dir));
         return dir;
     } else return nullptr;
+}
+
+std::shared_ptr<Adapter> Config::GetAdapter() {
+    if (data.adapter == nullptr) {
+        if (data.adapterType == "local_filesystem") {
+            data.adapter = std::make_shared<LocalFilesystemAdapter>();
+            std::dynamic_pointer_cast<LocalFilesystemAdapter>(data.adapter)->SetPath(data.adapterPath);
+        }
+    }
+    return data.adapter;
 }
 
 void Config::Dir::ParseRules(const libconfig::Setting& source, Config::Dir::RulesInternal& target) {
@@ -180,7 +192,8 @@ void Config::Load(std::string filename) {
     // Get config from config file
     // 1. Required fields
 	if (!config_file.lookupValue("baseDir", data.baseDir)) throw ConfigException("Missing 'baseDir' in the config file '"+filename+"'\n");
-	if (!config_file.lookupValue("adapter.type", data.adapter)) throw ConfigException("Missing 'adapter.type' in the config file '"+filename+"'\n");
+	if (!config_file.lookupValue("adapter.type", data.adapterType)) throw ConfigException("Missing 'adapter.type' in the config file '"+filename+"'\n");
+	if (!config_file.lookupValue("adapter.path", data.adapterPath)) throw ConfigException("Missing 'adapter.path' in the config file '"+filename+"'\n");
 
     // 2. Optional fields
     config_file.lookupValue("treeSubdir", data.treeSubdir);

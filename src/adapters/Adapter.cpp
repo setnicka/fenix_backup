@@ -31,7 +31,7 @@ void Adapter::RestoreSubtreeToLocalPath(std::shared_ptr<FileInfo> file, const st
     if (file->GetType() == DIR)
         for(auto& item: file->GetChilds()) {
             if (preserve_inbackup_path) RestoreSubtreeToLocalPath(item.second, path, mode, tactic, true);
-            else RestoreSubtreeToLocalPath(item.second, path+"/"+item.second->GetName(), mode, tactic, true);
+            else RestoreSubtreeToLocalPath(item.second, path+"/"+item.second->GetName(), mode, tactic, false);
         }
     if (mode != ONLY_DATA) RestoreFileToLocalPath(file, path, ONLY_PERMISSIONS, tactic, preserve_inbackup_path);
 }

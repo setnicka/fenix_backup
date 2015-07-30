@@ -1,7 +1,7 @@
-PROG=fenix_tester
-CLASSES=Config FileInfo FileTree FileChunk Functions BackupCleaner
+PROG=fenix
+CLASSES=Config FileInfo FileTree FileChunk Functions BackupCleaner CLI
 ADAPTERS=Adapter LocalFilesystemAdapter
-OTHER=fenix_tester.o sha256.o
+OTHER=fenix_tester.o fenix.o sha256.o
 DIRECTORIES=obj/adapters
 
 OBJS=$(addprefix obj/,${OTHER} $(addsuffix .o,${CLASSES} $(addprefix adapters/,${ADAPTERS}) ))

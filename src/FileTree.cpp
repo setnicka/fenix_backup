@@ -285,7 +285,23 @@ std::shared_ptr<FileInfo> FileTree::FileTreeData::AddNode(file_type type, std::s
 
 
 std::shared_ptr<FileInfo> FileTree::GetFileByPath(std::string const& path) {
-	return nullptr;
+    size_t start = 0; size_t len = path.length();
+    auto node = data->root;
+    auto pos = path.find('/', start);
+
+    // Recursive search
+    while (pos != std::string::npos) {
+        // If directory name is "/" (in cases like "dir//subdir") or "./", move start and ask again
+        if (pos - start > 0 && !(pos - start == 1 && path[start] == '.')) {
+            node = node->GetChild(path.substr(start, pos - start));
+            if (node == nullptr) return nullptr;
+        }
+        start = pos + 1;
+        pos = path.find('/', start);
+    }
+    // If there is rest of the name, try to use it as subdir name, else return this dir
+    if (len - start > 0) return node->GetChild(path.substr(start, len - start));
+    else return node;
 }
 
 std::shared_ptr<FileInfo> FileTree::GetFileById(unsigned int file_id) {

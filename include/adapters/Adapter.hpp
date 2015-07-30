@@ -1,6 +1,10 @@
 #ifndef ADAPTERS_ADAPTER_HPP
 #define ADAPTERS_ADAPTER_HPP
 
+namespace FenixBackup {
+    class Adapter;
+}
+
 #include <memory.h>
 #include "FileTree.hpp"
 #include "FileInfo.hpp"
@@ -20,6 +24,7 @@ class Adapter {
     /// Scan and construct FileTree, return pointer to it
     virtual std::shared_ptr<FileTree> Scan() = 0;
     virtual std::shared_ptr<FileTree> GetTree() = 0;
+    virtual void SetTree(std::shared_ptr<FileTree> tree) = 0;
 
     /// Get and process each given file
     virtual void GetAndProcess(std::shared_ptr<FileInfo> file) = 0;

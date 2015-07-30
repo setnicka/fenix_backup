@@ -87,6 +87,7 @@ LocalFilesystemAdapter::~LocalFilesystemAdapter() {}
 
 void LocalFilesystemAdapter::SetPath(std::string path) { data->path = path; }
 std::shared_ptr<FileTree> LocalFilesystemAdapter::GetTree() { return data->tree; }
+void LocalFilesystemAdapter::SetTree(std::shared_ptr<FileTree> tree) { data->tree = tree; }
 
 std::shared_ptr<FileTree> LocalFilesystemAdapter::Scan() {
     data->tree = FileTree::CreateNewTree();

@@ -15,6 +15,7 @@ class LocalFilesystemAdapter: public Adapter {
 
     virtual std::shared_ptr<FileTree> Scan();
     virtual std::shared_ptr<FileTree> GetTree();
+    virtual void SetTree(std::shared_ptr<FileTree> tree);
     virtual void GetAndProcess(std::shared_ptr<FileInfo> file);
 
     virtual void RestoreFile(std::shared_ptr<FileInfo> file, restore_mode mode = ALL, restore_tactic tactic = NEWEST_KNOWN_VERSION);

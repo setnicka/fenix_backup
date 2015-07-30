@@ -5,12 +5,16 @@
 #include <unordered_map>
 
 #include "Global.hpp"
+#include "adapters/Adapter.hpp"
 
 namespace FenixBackup {
 
 struct ConfigData {
     std::string baseDir;
-    std::string adapter;
+    std::string adapterType;
+    std::string adapterPath;
+
+    std::shared_ptr<Adapter> adapter = nullptr;
 
     std::string treeSubdir = "trees";
     std::string dataSubdir = "data";
@@ -30,6 +34,8 @@ class Config {
 	static void Load(std::string filename);
 
     static const ConfigData& GetConfig();
+
+    static std::shared_ptr<Adapter> GetAdapter();
 
 	static const std::string GetTreeDir();
 	static const std::string GetDataDir();
