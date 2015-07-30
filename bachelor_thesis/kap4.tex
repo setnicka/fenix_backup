@@ -374,41 +374,41 @@ některých datových bloků a úkolem mazání je vybrat ten blok, který bude
 se může odkazovat více záznamů o~souborech.
 
 Vybrání bloku ke smazání probíhá tak, že se pro každý záznam o~zálohovaném
-souboru spočítá {\it baddness} (\uv{míra špatnosti}), která se odvíjí mimo jiné
+souboru spočítá {\it badness} (\uv{míra špatnosti}), která se odvíjí mimo jiné
 i od stáří zálohy a jejich nahuštěnosti -- je větší snaha držet novější zálohy
 a více do historie může pokrytí řídnout (přesná funkce viz níže).
 
-Z~takto spočítaných baddness pro každý záznam o~souboru se pro každý datový
-blok vybere ta nejmenší baddness ze souborů, které daný blok využívají, čímž se
+Z~takto spočítaných badness pro každý záznam o~souboru se pro každý datový
+blok vybere ta nejmenší badness ze souborů, které daný blok využívají, čímž se
 efektivně ohodnotí bloky podle toho, jak moc jsou významné pro historii. Pak se
-mohou bloky postupně od největší baddness vybírat a mazat. Přitom je nutné dát
+mohou bloky postupně od největší badness vybírat a mazat. Přitom je nutné dát
 pozor na to, že při smazání nějakého bloku (a tím několik verzí souborů) se
-může změnit baddness okolním souborům v~historii a ty se musí přepočítat. Dá se
-však vypozorovat, že se baddness vždy jenom sníží, čehož se dá využít při
+může změnit badness okolním souborům v~historii a ty se musí přepočítat. Dá se
+však vypozorovat, že se badness vždy jenom sníží, čehož se dá využít při
 praktickém nasazení ke zjednodušení implementace.
 
-\subsection{Postup počítání baddness}
+\subsection{Postup počítání badness}
 
 Čistící třída {\it BackupClean} obsahuje jednu metodu, jejímž voláním se načte
 kompletní seznam všech záloh a obsažených souborů, a druhou metodu sloužící ke
-smazání vždy jednoho datového bloku s~největší baddness. Postup je tedy takový,
+smazání vždy jednoho datového bloku s~největší badness. Postup je tedy takový,
 že se jednou načte kompletní seznam a pak se opakovaně volá mazání bloků.
 
 Při načítání se nejprve vytvoří pro každou známou navazující posloupnost souborů
 jeden jejich vektor (aby bylo možné snadno nalézt o~jedna novější a o~jedna
-starší verzi souboru). Pak se pro každý záznam o~souboru spočítá baddness podle
+starší verzi souboru). Pak se pro každý záznam o~souboru spočítá badness podle
 tohoto vzorce:
 
 $$TODO\over[\hbox{hodnota \texttt{history} z konfigurace}]$$
 
-Ze spočítaných baddness se vybere pro každý datový blok ta nejmenší a pak se
+Ze spočítaných badness se vybere pro každý datový blok ta nejmenší a pak se
 tato hodnota ještě vydělí pro každý datový blok počtem na něj navazujících bloků
 (to je heuristika beroucí v~úvahu to, že při vícero navazujících blocích by se
 namísto zmenšení mohl celkový datový objem zvětšit, viz dále).
 
 Pak se datové bloky utřídí od největší hodnoty. Po smazání datového bloku se
 provede označení všech spojených záznamů o~souborech jako \texttt{DELETED} a
-všem okolním záznamům se přepočítá baddness. Pak je systém připraven pro mazání
+všem okolním záznamům se přepočítá badness. Pak je systém připraven pro mazání
 dalšího bloku.
 
 \subsection{Smazání datového bloku}
@@ -423,5 +423,5 @@ změny pokrývané tímto blokem rozředí do změn v~dalších blocích.
 
 V~některých případech se může stát, že se tímto krokem celkový objem dat dokonce
 zvětší, protože se velký rozdíl pokrývaný tímto souborem odsune do více
-navazujících souborů. Proto je součástí výpočtu baddness datových bloků také
+navazujících souborů. Proto je součástí výpočtu badness datových bloků také
 dělení počtem navazujících bloků
