@@ -14,7 +14,7 @@
 
 using namespace std;
 
-int main() {
+int tester() {
 	//auto storage = new FenixBackup::Storage();
 	//storage->Test();
 
@@ -25,7 +25,7 @@ int main() {
         // 1. Get adapter and run it -> non-saved FileTree
 
         FenixBackup::LocalFilesystemAdapter* adapter;
-        if (FenixBackup::Config::GetConfig().adapter == "local_filesystem") {
+        if (FenixBackup::Config::GetConfig().adapterType == "local_filesystem") {
             adapter = new FenixBackup::LocalFilesystemAdapter();
             adapter->SetPath("./");
         }
