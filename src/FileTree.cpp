@@ -145,7 +145,8 @@ FileTree::FileTree(std::string name) {
 	// Load data from given FileTree name
     std::ifstream is(Config::GetTreeFilename(name));
     if (!is.good()) throw FileTreeException("Couldn't load FileTree '"+name+"' (from filename '"+Config::GetTreeFilename(name)+"')\n");
-    cereal::JSONInputArchive archive(is);
+    //cereal::JSONInputArchive archive(is);
+    cereal::BinaryInputArchive archive(is);
 
     archive(data);
 }
@@ -337,7 +338,8 @@ void FileTree::SaveTree() {
     std::string temp_name = Config::GetTreeFilename(data->tree_name)+".tmp";
     std::ofstream os(temp_name, std::ios::binary);
     {
-        cereal::JSONOutputArchive archive(os);
+        //cereal::JSONOutputArchive archive(os);
+        cereal::BinaryOutputArchive archive(os);
         archive(cereal::make_nvp("FileTreeData", data));
     }
     // Need to unallocate archive (to finish the data) before closing ofstream

@@ -46,7 +46,8 @@ class FileChunk::FileChunkData {
 
 void FileChunk::FileChunkData::SaveChunkInfo() {
     std::ofstream os(Config::GetChunkFilename(chunk_name));
-    cereal::JSONOutputArchive archive(os);
+    //cereal::JSONOutputArchive archive(os);
+    cereal::BinaryOutputArchive archive(os);
 
     archive(*this);
     //serialize(archive);
@@ -56,7 +57,8 @@ void FileChunk::FileChunkData::LoadChunkInfo() {
 	// Load data from given FileChunk meta file name
     std::ifstream is(Config::GetChunkFilename(chunk_name));
     if (!is.good()) throw FileChunkException("Couldn't load FileChunk '"+chunk_name+"' meta info (from filename '"+Config::GetChunkFilename(chunk_name)+"')\n");
-    cereal::JSONInputArchive archive(is);
+    //cereal::JSONInputArchive archive(is);
+    cereal::BinaryInputArchive archive(is);
 
     archive(*this);
 }

@@ -1,0 +1,226 @@
+\documentclass{beamer}				% Základní vzhled pro prezentaci (s přechody)
+%\documentclass[trans]{beamer}			% Zrušení všech přechodů
+%\documentclass[handout]{beamer}		% Tisk handoutů
+
+% Pro tisk handoutů
+\usepackage{pgfpages}
+\mode<handout>{
+	\usetheme{default}
+	\setbeamercolor{background canvas}{bg=black!5}
+	\pgfpagesuselayout{4 on 1}[letterpaper,landscape,border shrink=2.5mm]
+}
+
+\beamertemplatenavigationsymbolsempty % Zrušení navigačních klikacích ikonek
+
+\usepackage[utf8]{inputenc}			%%% UTF8 kódování češtiny
+
+
+\usepackage[czech]{babel}
+%\usetheme{AnnArbor}
+\usetheme{Warsaw}
+\usecolortheme{wolverine}
+\usefonttheme{serif}
+\usepackage{lscape}
+\usepackage{graphicx}
+\usepackage{multirow}
+
+\setbeamersize{text margin left=1em,text margin right=1em}
+\setbeamertemplate{itemize items}[circle]
+
+% Nastavíme hyperref tak, aby si nestěžoval na odkazy uvnitř dokumentu obsahující české znaky
+\hypersetup{unicode}
+
+% Úprava barevnosti záhlaví a zápatí
+% šedivočerná -> méně odpoutávají pozornost od obsahu slidu
+\setbeamercolor{section in head/foot}{fg=white,bg=gray!40!black}
+\setbeamercolor{subsection in head/foot}{fg=black,bg=gray!30}
+
+% Deklarujeme si \mysectionpage (podobne jako partpage)
+% (prefixujeme my, protoze \sectionpage v nekterych verzich LaTeXu způsobuje kolizi
+\setbeamerfont{section title}{parent=title}
+\setbeamercolor{section title}{parent=titlelike}
+\defbeamertemplate*{my section page}{default}[1][]
+{
+	\centering
+	\begin{beamercolorbox}[sep=8pt,center,rounded=true,shadow=true,#1]{section title}
+		\usebeamerfont{section title}\insertsection\par
+	\end{beamercolorbox}
+	%\addtocounter{framenumber}{-1}
+}
+\newcommand*{\mysectionpage}{\usebeamertemplate*{my section page}}
+
+\title[Zálohovací systém]{Zálohovací systém}
+\subtitle{Obhajoba bakalářské práce}
+\author{Jiří Setnička}
+\institute[KAM]{Katedra aplikované matematiky}
+\date{7. září 2015}
+
+\begin{document}
+
+\def\O{{\cal O}}
+
+\begin{frame}[plain]
+\vfill
+\begin{figure}
+	\includegraphics[width=100mm,type=pdf,ext=.epdf,read=.epdf]{mff_logo_new-crop}
+\end{figure}
+\titlepage
+\end{frame}
+
+\section{Zálohování obecně}
+\subsection{Popis problému}
+
+\begin{frame}{Problém zálohování}
+Z pohledu systému:\pause
+\begin{itemize}
+	\item Držení více historických verzí
+	\pause\item Objem zálohy -- co ukládat
+	\pause\item Objem zálohy -- ředění historie
+\end{itemize}
+
+\bigskip
+Z pohledu uživatele:\pause
+\begin{itemize}
+	\item Konfigurovatelnost
+	\pause\item Rychlost -- objem přenášených dat a čas zpracování
+	\pause\item Snadná a rychlá obnova dat
+\end{itemize}
+\end{frame}
+
+\subsection{Zvolené řešení}
+
+\begin{frame}{Zvolené řešení v systému FenixBackup}
+
+{\bf Problém:} Objem zálohy
+\begin{itemize}
+	\item Jen změněné nebo nové soubory
+	\pause\item Rozdílové zálohy souborů (VCDIFF)
+	\pause\item Duplikáty
+	\pause\item Automatický výběr záloh ke smazání
+\end{itemize}
+
+\bigskip\pause
+
+{\bf Problém:} Rychlost
+\begin{itemize}
+	\item Proskenování souborového stromu
+	\pause\item Identifikace nezměněných souborů
+\end{itemize}
+
+\bigskip\pause
+
+{\bf Problém:} Univerzálnost
+\begin{itemize}
+	\item Adaptéry pro připojování
+\end{itemize}
+
+\end{frame}
+
+\section{Implementace}
+\subsection{Reprezentace dat}
+
+\begin{frame}{Reprezentace dat -- souborové stromy}
+Každá záloha = samostatně uložený {\bf souborový strom}
+
+\pause\bigskip
+
+Údaje o každém souboru:
+\begin{itemize}
+	\item File/directory/symlink
+	\pause\item Metadata (vlastník, práva, čas poslední modifikace, \dots)
+	\pause\item Verzovací status
+	\item Odkaz na datový blok
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Reprezentace dat -- datové bloky}
+\begin{itemize}
+	\item Nezávislé, určeny jen obsahem -- žádná metadata
+	\pause\item Identifikace SHA256 hashem
+	\pause\item VCDIFF (minulá verze/prázdný soubor)
+\end{itemize}
+\end{frame}
+
+\subsection{Konfigurace}
+
+\begin{frame}[fragile]
+\frametitle{Konfigurace}
+\begin{verbatim}
+paths: (
+  { path: "/.git"
+    scan: false
+  },
+  { path: "/test_backup/"
+    file_rules: (
+      { backup: false },
+      { regex: ".*\.fenixtree"
+        path_regex: ""
+        size_at_least: 10
+        size_at_most: 10485760
+        backup: true
+        priority: 10
+      })
+  })
+\end{verbatim}
+\end{frame}
+
+\section{Další vývoj}
+\subsection{Možná vylepšení}
+
+\begin{frame}{Další vylepšení}
+\begin{itemize}
+	\item Ukládání dat -- nepovinné rozšiřující hlavičky (ACL, \dots)
+	\pause\item Další adaptéry -- rsync, Samba (stroje s Windows), \dots
+	\pause\item Sdílení datových bloků mezi zálohami více strojů
+\end{itemize}
+
+\end{frame}
+
+\subsection{Poděkování}
+\begin{frame}{}
+
+\centerline{Za vedení práce, poskytované rady a konzultace děkuji svému}
+\centerline{vedoucímu Mgr. Martinu Marešovi, Ph.D.}
+
+\bigskip\bigskip
+
+\centerline{Za poskytnuté připomínky děkuji svému oponentovi}
+\centerline{Mgr. Pavlu Veselému}
+
+\pause
+\bigskip\hrule
+\vfill
+{\Large\centerline{Děkuji za pozornost}}
+\vfill
+\end{frame}
+
+\subsection{Reakce na připomínky}
+\begin{frame}{Velikost adresářového stromu}
+\pause
+\begin{tabular}{l | r }
+\hline\hline
+Parametry (práva, vlastník, velikost, \dots) & 56B \\
+Pomocné hodnoty v uzlu & 20B \\
+Název souboru (string) & $\sim$30B \\
+U souborů (string) & 32B \\
+U složek -- odkazy na soubory & započítány souborům \\
+Cache cesty (string): & $\sim$120B\\
+\hline\hline
+\bf Velikost jednoho uzlu stromu: & \bf $\sim$256B
+\end{tabular}
+
+\bigskip\pause
+
+Počet souborů (\texttt{find / | wc -l}):
+\begin{itemize}
+	\item Notebook s Linuxem: $468\,000$
+	\item Notebook s Win10: $538\,000$
+\end{itemize}
+
+\bigskip\pause
+
+{\bf Vrchní odhad:} $1\,000\,000 \cdot 256\hbox{B} = 244\hbox{MB}$
+
+\end{frame}
+
+\end{document}
