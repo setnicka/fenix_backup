@@ -5,7 +5,7 @@ all: FenixBackup_obhajoba.pdf
 	while grep 'Rerun to get ' $*.log ; do pdflatex $< ; done
 
 clean:
-	rm -f *.pdf *.out *.nav *.log *.snm *.toc *.aux *.vrb
+	rm -f *.pdf *.out *.nav *.log *.snm *.toc *.aux *.vrb *.pdfpc
 
 .PHONY: all clean
 
