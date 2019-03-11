@@ -1,0 +1,95 @@
+Datová část funguje na principu, že si nejdříve obstará celý souborový
+stromeček a ke každému souboru jeho velikost a datum modifikace. Tuhle
+reprezentaci uloží a vrátí seznam souborů, které chce obstarat. Cílem je, aby
+seznam souborů byl vracený v pořadí podle priority, ale tahle prioritizace
+(a obecně s filtrací, které soubory chce) ještě není sepsaná - ale to už by po
+vymyšlení konfiguace měla být práce na tak hodinu nebo dvě :-)
+
+Je to psané v C++11, využil jsem tam zatím několik externích knihoven (hlavně
+Cereal pro serializaci dat a pak open_vcdiff pro diffovátko). Sídlí to aktuálně
+na Atreyi v tomto repozitáři, měl bys tam mít přístup pro čtení:
+
+	/home/setnicka/GIT/FenixBackup.git
+
+* Reprezentace stromečků *
+
+Souborový strom je reprezentovaný třídou FileTree, které ve vrcholech bydlí
+instance třídy FileInfo, které mohou představovat složky i klasické soubory.
+Každé FileInfo si u sebe drží strukturu file_params, ve které se ukládá čas
+modifikace, velikost, práva, ... (do budoucna i informace o ACLku apod), a taky
+případné odkazy na datové bloky a hashe obsahů souborů.
+
+Ve stromečku se dále drží od nuly indexované pole odkazů na soubory, které
+slouží hlavně pro držení si odkazů na minulé verze souboru (další stromeček se
+pak odkazuje "Předchůdce je v minulé verzi soubor s indexem XY").
+
+Celý jeden stromeček jako celek se pak ukládá (serializuje) do samostatného
+souboru (takže pro každou zálohu jeden samostatný soubor), který se pak navíc
+odkazuje na předchozí a následující verzi.
+
+* Datové bloky *
+
+Každý datový blok je představován dvěma soubory - meta souborem s informacemi
+a datovým souborem, kde bydlí celý onen datový kousíček. Stará se o to třída
+FileChunk. Ukládá se vždy VCDIFF oproti předchozí verzi (pokud je to první
+verze, tak VCDIFF oproti prázdnému souboru). Na počítání diffů používám knihovnu
+open_vcdiff.
+
+Datové bloky se samozřejmě ukládají jen, když je to potřeba - neukládá se znova,
+když se soubor nezmění :-) Jednotlivé FileInfo se vždy odkazují na poslední
+FileChunk, který této verzi odpovídá (navíc si k tomu pamatují i SHA256 hash).
+Když se tedy soubor nezmění, tak si jen z minulé verze zkopíruji SHA256 hash
+a odkaz na FileChunk.
+
+* Funkce *
+
+Po postavení stromečku FileTree dostanu nazpět seznam souborů, o které má
+zálohovadlo zájem. Pak postupně zálohovadlu vždy předám odkaz na odpovídající
+FileInfo společně s obsahem souboru (který si mezitím stáhnu ze zálohovaného
+stroje/obstarám jinak). Zálohovadlo soubor vezme, spočítá hash, pokusí se tenhle
+hash najít v minulé verzi stromečku (tím rozpozná přesun souboru, co zatím nevím
+jak rozpoznat je přesun + modifikace) a pokud to není jen přesun souboru, tak
+uloží jako FileChunk VCDIFF nového souboru.
+
+* Plány dál *
+
+Teď chci dopsat hlavně napsat nějaký minimální "přenosový" modul na zálohování
+z lokálního filesystému (hlavně pro účely dobrého testování) a pak nějakou
+konfiguraci (navrhnout, co všechno a jak v ní jednoduše popisovat). Až tohle
+bude, dodělám implementaci toho řazení souborů podle preferencí na to, které
+chci zálohovat jako první.
+
+Dál chci datovou část naučit pořádně mazat jakoukoliv starší verzi, kterou mu
+označím k vymazání (zatím umím mazat FileChunky, ale ještě musím nad tím postavit
+mazání stromečkům když bude potřeba), a pak hlavně vymyslet, jak automaticky
+určovat věci ke smazání, když bude docházet místo.
+
+Tím bude celá datová část hotova a bude pak zbývat dodělat komunikační modul
+postavený na rsyncu (jak jsme o něm přemýšleli). Potom ještě nějaké snadné
+obslužné ovládací rozhraní a snad vše :-)
+
+* Konfigurace *
+
+Jedna z otázek, co teď řeším - co všechno a jak mít v konfiguraci.
+
+Zatím tak nějak uvažuji o tom, že jedna konfigurace = jeden zálohovaný stroj.
+Vzhledem k tomu, že chci mít možnost používat více "modulů" stahujících data
+(přes rsync, z lokálního úložiště, ...) tak první položka pro každý zálohovaný
+cíl bude asi název toho komunikačního modulu + potřebné informace pro připojení.
+
+Dál jsem pak konfiguraci uvažoval jako stromovitou strukturu, půjde nastavit
+parametry pro libovolný podstrom (s tím, že níže nastavené parametry přepíší ty
+dřívější).
+
+A teď co nastavovat? Představuji si, že se budeme řídit hlavně podle přípon
+souborů (nevím, jestli má smysl volat něco jako file). Parametry pro soubory
+jsem zatím omezil na:
+  * backup: true/false  # Jestli vůbec zálohovat, default true
+  * priority: 1-10  # Jak důležité je zálohovat nově změněnou věc
+  * history: 1-10  # Jak důležité je držet historické verze
+
+Priorita stahování souborů je jednoduchá, prostě se pak stahované soubory setřídí
+podle ní. Ale s tím, kolik si držet verzí v historii, váhám. Tam bude potřeba
+implementovat systém, který dokáže zhodnotit důležitost držení si současné verze
+vzhledem k "osamělosti" verze (jak daleko je nejbližší další verze souboru)
+a vzhledem k té prioritě, napadá tě něco?
